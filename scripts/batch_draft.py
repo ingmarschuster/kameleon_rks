@@ -1,11 +1,10 @@
-from kmc.score_matching.random_feats.gaussian_rkhs import sample_basis, \
-    feature_map, feature_map_single, feature_map_grad_single
-
-import numpy as np
-from kmc.densities.banana import sample_banana
-from kmc.densities.gaussian import sample_gaussian
-
+from kameleon_rks.banana import sample_banana
+from kameleon_rks.gaussian import sample_gaussian
+from kameleon_rks.gaussian_rks import sample_basis, feature_map,\
+    feature_map_single, feature_map_grad_single
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 np.random.seed(0)
 
