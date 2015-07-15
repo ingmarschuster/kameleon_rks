@@ -45,29 +45,25 @@ class KameleonRKSGaussian():
         # iteration of last proposal update
         self.last_update = 0
 
-    def update(self, Z):
+    def update(self, z_new):
         """
         Updates the Kameleon-lite proposal. If a schedule was set, it is used as update probability.
-        To be called *every* iteration (since schedule needs iteration number)
+        Note that every call increases a counter that is used for the schedule (if set)
         
-        If a schedule is set, updates the proposal mechanism using all samples since the last update.
+        If a schedule is set, updates the proposal mechanism according to schedule probability.
         
-        Z is a 2-dimensional array of size (txD) of. Assumed to be a *growing* set of samples
+        z_new is a 1-dimensional array of size (D) of.
         """
         self.t += 1
         
         if self.schedule is not None:
             # update according to schedule and all points since last update
             if np.random.rand() < self.schedule(self.t):
-                Z_new = Z[self.last_update:self.t]
-                self.last_update = self.t
-            else:
-                Z_new = np.empty((0, Z.shape[1]))
+                self.update_feature_covariance_(z_new)
         else:
             # always update using last point
-            Z_new = Z[np.newaxis, -1]
+            self.update_feature_covariance_(z_new)
         
-        self.update_feature_covariance_(Z_new)
     
     def proposal(self, y):
         """
@@ -82,10 +78,17 @@ class KameleonRKSGaussian():
     def update_feature_covariance_(self, Z_new):
         """
         Helper method to update the feature space mean and covariance.
+        
+        Z_new is assumed to be either a 2d array or a 1d array
         """
+        
         # ignore empty updates
         if len(Z_new)==0:
             return
+        
+        # make sure array dimension is correct
+        if Z_new.ndim==1:
+            Z_new = Z_new[np.newaxis,:]
         
         Phi_new = feature_map(Z_new, self.omega, self.u)
         self.mu, self.C, self.n, self.M2 = rank_m_update_mean_covariance(Phi_new, self.n, self.mu, self.M2)
