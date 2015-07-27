@@ -8,13 +8,13 @@ def gamma_median_heuristic(Z, num_subsample=1000):
     Computes the median pairwise distance in a random sub-sample of Z.
     Returns a \gamma for k(x,y)=\exp(-\gamma ||x-y||^2), according to the median heuristc,
     i.e. it corresponds to \sigma in k(x,y)=\exp(-0.5*||x-y||^2 / \sigma^2) where
-    \sigma is the median distance. \gamma = 0.5*(\sigma^2)
+    \sigma is the median distance. \gamma = 0.5/(\sigma^2)
     """
     inds = np.random.permutation(len(Z))[:np.max([num_subsample, len(Z)])]
     dists = squareform(pdist(Z[inds], 'sqeuclidean'))
     median_dist = np.median(dists[dists > 0])
     sigma = np.sqrt(0.5 * median_dist)
-    gamma = 0.5 * (sigma ** 2)
+    gamma = 0.5 / (sigma ** 2)
     
     return gamma
 
