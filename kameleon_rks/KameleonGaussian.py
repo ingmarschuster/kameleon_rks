@@ -1,45 +1,39 @@
-import collections
+from scipy.spatial.distance import cdist
 
 from kameleon_rks.gaussian import sample_gaussian, log_gaussian_pdf
-from kameleon_rks.gaussian_rks import sample_basis, feature_map, \
-    feature_map_grad_single, feature_map_single, gamma_median_heuristic
+from kameleon_rks.gaussian_rks import gamma_median_heuristic
 import numpy as np
 
 
-class KameleonRKSGaussian():
+class KameleonGaussian():
     """
-    Implements a random kitchen sink version of Kameleon MCMC.
+    Implements a random kitchen sink version of Kameleon MCMC, using a random sub-sample of the chain history.
     """
     
-    def __init__(self, D, kernel_gamma, m, nu2, gamma2=0.1, schedule=None, acc_star=0.234,
-                 update_kernel_gamma=None, update_kernel_gamma_schedule=None, update_kernel_gamma_tol=0.1):
+    def __init__(self, D, kernel_gamma, n, nu2, gamma2=0.1, schedule=None, acc_star=0.234,
+                 update_kernel_gamma=False, update_kernel_gamma_schedule=None, update_kernel_gamma_tol=0.1):
         """
         D                            - Input space dimension
         kernel_gamma                 - Gaussian kernel parameter
-        m                            - Feature space dimension
+        n                            - Number of sub-samples of the chain history
         gamma2                       - Exploration parameter. Kameleon falls back
                                        to random walk with that scaling when in unexplored regions.
                                        Increasing increases exploration but decreases mixing in explored regions.
         nu2                         - Gradient step size. Effectively a scaling parameter.
-        schedule                     - Optional. Function that generates adaptation weights
+        schedule                     - Optional. Function that generates adaptation probabilities
                                        given the MCMC iteration number.
-                                       The weights are used in the stochastic updating of the
-                                       feature covariance.
-                                       If not set, feature covariance is never updated. In that case, call
-                                       batch_covariance() before using. 
+                                       The probabilities are used in the updating updating of the
+                                       random sub-sample of the chain history.
+                                       If not set, chain history is never updated. In that case, call
+                                       set_oracle_samples() before using. 
         acc_star                       Optional: If set, the nu2 parameter is tuned so that
-                                       average acceptance equals eta_star, using the same schedule
-                                       as for the covariance update (If schedule is set, otherwise
+                                       average acceptance equals acc_star, using the same schedule
+                                       as for the chain history update (If schedule is set, otherwise
                                        ignored)
-        update_kernel_gamma          - Optional. If set to an integer, collects a sliding
-                                       window of past samples in the update() method.
+        update_kernel_gamma          - Optional. If set to True, updates kernel bandwidth.
                                        Uses 1./t as probability to re-set the
                                        kernel bandwidth via computing the media distance
-                                       in the collected samples. Then updates the random
-                                       feature basis.
-                                       The window size depends on the support of the distribution,
-                                       and in particular the number of samples to estimate the median
-                                       distance reliably. Set to a few thousand if in doubt.
+                                       in the collected (subsampled) samples.
                                        Suggested to only use in pilot runs and then fix the found
                                        kernel_gamma.
                                        Note that a separate updating schedule can be provided.
@@ -49,7 +43,7 @@ class KameleonRKSGaussian():
                                        Bandwidth is only updated if at least that far from previous
         """
         self.kernel_gamma = kernel_gamma
-        self.m = m
+        self.n = n
         self.D = D
         self.gamma2 = gamma2
         self.nu2 = nu2
@@ -71,9 +65,6 @@ class KameleonRKSGaussian():
             assert np.all(lmbdas > 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
             
-        if self.update_kernel_gamma:
-            self.past_samples = collections.deque()
-            
         if self.update_kernel_gamma_schedule is not None:
             lmbdas = np.array([update_kernel_gamma_schedule(t) for t in  np.arange(100)])
             assert np.all(lmbdas > 0)
@@ -85,28 +76,18 @@ class KameleonRKSGaussian():
         """
         Initialises internal state. To be called before MCMC chain starts.
         """
-        # fix feature space random basis
-        self.omega, self.u = sample_basis(self.D, self.m, self.kernel_gamma)
-        
-        # initialise running averages for feature covariance
         self.t = 0
-
-        if self.schedule is not None:
-            # start from scratch
-            self.mu = np.zeros(self.m)
-            
-            # initialise as isotropic
-            self.C = np.eye(self.m)
-        else:
-            # make user call the set_batch_covariance() function
-            self.mu = None
-            self.C = None
-
-    def set_batch_covariance(self, Z):
-        Phi = feature_map(Z, self.omega, self.u)
-        self.mu = np.mean(Phi, axis=0)
-        self.C = np.cov(Phi.T)
         
+        # initialise chain history and random sub-sample
+        self.chain_history = []
+        if self.schedule is not None:
+            self.Z = np.zeros((0, self.D))
+        else:
+            # make user call the set_oracle_samples() function
+            self.Z = None
+
+    def set_oracle_samples(self, Z):
+        self.Z = Z
 
     def update(self, z_new, previous_accpept_prob):
         """
@@ -120,33 +101,28 @@ class KameleonRKSGaussian():
         previous_accpept_prob       - Acceptance probability of previous iteration
         """
         self.t += 1
+        self.chain_history.append(z_new)
         
         if self.schedule is not None:
-            # generate updating weight
+            # generate updating probability
             lmbda = self.schedule(self.t)
             
-            # project current point
-            phi = feature_map_single(z_new, self.omega, self.u)
+            # update chain history
+            if np.random.rand() < lmbda:
+                num_samples_Z = np.min([self.n, self.t])
+                inds = np.random.permutation(self.t)[:num_samples_Z]
+                self.Z = np.zeros((num_samples_Z, self.D))
+                for i, ind in enumerate(inds):
+                    self.Z[i] = self.chain_history[ind]
             
-            # update
-            centred = self.mu - phi
-            self.mu = self.mu * (1 - lmbda) + lmbda * phi
-            self.C = self.C * (1 - lmbda) + lmbda * np.outer(centred, centred)
-            
-            # update scalling parameter if wanted
+            # update scaling parameter if wanted
             if self.acc_star is not None:
                 diff = previous_accpept_prob - self.acc_star
                 self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
                 self.nu2s.append(self.nu2)
             
-            if self.update_kernel_gamma is not None:
-                # update sliding window
-                self.past_samples.append(z_new)
-                if len(self.past_samples) > self.update_kernel_gamma:
-                    self.past_samples.popleft()
-                
-                num_samples_window = len(self.past_samples)
-                
+            # update kernel parameter if history contains at least n samples
+            if self.update_kernel_gamma and self.t >= self.n:
                 # probability of updating
                 if self.update_kernel_gamma_schedule is not None:
                     update_prob = self.update_kernel_gamma_schedule(self.t)
@@ -154,36 +130,26 @@ class KameleonRKSGaussian():
                     update_prob = 1. / (self.t + 1)
                 
                 # update kernel bandwidth (if window full yet)
-                if np.random.rand() < update_prob and num_samples_window >= self.update_kernel_gamma:
-                    
-                    # transform past samples into array
-                    Z = np.array(self.past_samples)
-                    
+                if np.random.rand() < update_prob:
                     # compute new kernel gamma
                     print("Checking whether to update kernel_gamma")
-                    new_kernel_gamma = gamma_median_heuristic(Z, num_samples_window)
+                    new_kernel_gamma = gamma_median_heuristic(self.Z, self.n)
                     diff = np.abs(new_kernel_gamma - self.kernel_gamma)
                     
                     # only update if change above tolerance
                     if np.abs(diff > self.update_kernel_gamma_tol):
                         self.kernel_gamma = new_kernel_gamma
                         
-                        # re-sample basis
-                        self.omega, self.u = sample_basis(self.D, self.m, self.kernel_gamma)
-                        
-                        # populate feature covariance from past samples
-                        self.set_batch_covariance(Z)
-                        
-                        print("Updated kernel gamma to %.3f (from %d samples)" % (self.kernel_gamma, num_samples_window))
+                        print("Updated kernel gamma to %.3f" % self.kernel_gamma)
     
     def proposal(self, y):
         """
         Returns a sample from the proposal centred at y, and its log-probability
         """
         
-        if self.schedule is None and (self.mu is None or self.C is None):
+        if self.schedule is None and self.Z is None:
             raise ValueError("Kameleon has not seen data yet." \
-                             "Either call set_batch_covariance() or set update schedule")
+                             "Either call set_oracle_samples() or set update schedule")
         
         L_R = self.construct_proposal_covariance_(y)
         proposal = sample_gaussian(N=1, mu=y, Sigma=L_R, is_cholesky=True)[0]
@@ -197,13 +163,28 @@ class KameleonRKSGaussian():
     
     def construct_proposal_covariance_(self, y):
         """
-        Helper method to compute Cholesky factor of the Gaussian Kameleon-lite proposal centred at y.
+        Helper method to compute Cholesky factor of the Gaussian Kameleon proposal centred at y.
         """
-        # compute gradient projection
-        grad_phi_y = feature_map_grad_single(y, self.omega, self.u)
+        R = self.gamma2 * np.eye(self.D)
         
-        # construct covariance, adding exploration noise
-        R = self.gamma2 * np.eye(self.D) + self.nu2 * np.dot(grad_phi_y, (self.m**2)*np.dot(self.C, grad_phi_y.T))
+        if len(self.Z) > 0:
+            # k(y,z) = exp(-gamma ||y-z||)
+            # d/dy k(y,z) = k(y,z) * (-gamma * d/dy||y-z||^2)
+            #             = 2 * k(y,z) * (-gamma * ||y-z||^2)
+            #             = 2 * k(y,z) * (gamma * ||z-y||^2)
+            
+            # gaussian kernel gradient, same as in kameleon-mcmc package, but without python overhead
+            sq_dists = cdist(y[np.newaxis, :], self.Z, 'sqeuclidean')
+            k = np.exp(-self.kernel_gamma * sq_dists)
+            neg_differences = self.Z - y
+            G = 2 * self.kernel_gamma * (k.T * neg_differences)
+            
+            # Kameleon
+            G *= 2  # = M
+            # R = gamma^2 I + \eta^2 * M H M^T
+            H = np.eye(len(self.Z)) - 1.0 / len(self.Z)
+            R += self.nu2 * G.T.dot(H.dot(G))
+            
         L_R = np.linalg.cholesky(R)
         
         return L_R
