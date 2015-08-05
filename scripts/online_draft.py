@@ -1,6 +1,6 @@
 from kameleon_rks.KameleonRKSGaussian import KameleonRKSGaussian
 from kameleon_rks.banana import sample_banana
-from kameleon_rks.gaussian_rks import sample_basis
+from kameleon_rks.gaussian_rks import sample_basis, gamma_median_heuristic
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -8,9 +8,11 @@ np.random.seed(0)
 
 # fix RKS basis
 D = 2
-m = 1000
-kernel_width = .5
-omega, u = sample_basis(D, m, kernel_width)
+m = 500
+kernel_gamma = gamma_median_heuristic(sample_banana(N=1000, D=D))
+kernel_gamma = 0.5
+print "Using kernel_gamma=%.2f" % kernel_gamma
+omega, u = sample_basis(D, m, kernel_gamma)
 
 
 # storing all oracle samples fed to Kameleon
@@ -24,7 +26,7 @@ gamma2 = 0.1
 schedule = lambda t: 1.
 
 # sampler instance
-kameleon_rks = KameleonRKSGaussian(kernel_width, m, D, gamma2, eta2, schedule)
+kameleon_rks = KameleonRKSGaussian(D, kernel_gamma, m, gamma2, eta2, schedule)
 kameleon_rks.initialise()
 
 # proposals centred at those points
@@ -42,7 +44,7 @@ while True:
     
         # this is not really an MCMC chain, but rather passing all oracle samples
         # note than Kameleon RKS here only uses the last added sample
-        kameleon_rks.update(Z)
+        kameleon_rks.update(z_new)
     
     # visualise proposals at some points
     plt.plot(Z[:, 0], Z[:, 1], 'bo')
