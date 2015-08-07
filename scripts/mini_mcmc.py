@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 
-def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None):
+def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, quiet = True):
     # MCMC results
     samples = np.zeros((num_iter, D))
     proposals = np.zeros((num_iter, D))
@@ -30,10 +30,11 @@ def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None):
         # print chain progress
         if times[it] > last_time_printed + 5:
             last_time_printed = times[it]
-            log_str = "%.1fs, MCMC iteration %d/%d, current log_pdf: %.6f, avg acceptance=%.3f" % (times[it]-times[0], it + 1, num_iter,
-                                                                       log_probs[it - 1],
-                                                                       np.mean(accepteds[:it]))
-            print(log_str)
+            if not quiet:
+                log_str = "%.1fs, MCMC iteration %d/%d, current log_pdf: %.6f, avg acceptance=%.3f" % (times[it]-times[0], it + 1, num_iter,
+                                                                           log_probs[it - 1],
+                                                                           np.mean(accepteds[:it]))
+                print(log_str)
         
         
         # propose
