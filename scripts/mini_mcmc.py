@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 
-def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, quiet = True):
+def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, quiet = False):
     # MCMC results
     samples = np.zeros((num_iter, D))
     proposals = np.zeros((num_iter, D))
