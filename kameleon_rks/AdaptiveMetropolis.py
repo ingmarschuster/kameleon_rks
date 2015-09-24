@@ -87,8 +87,13 @@ class AdaptiveMetropolis():
             # generate updating weight
             lmbda = self.schedule(self.t)
             
-            # low-rank update of Cholesky, costs O(d^2) only
-            self.mu, self.L_C = rank_one_update_mean_covariance_cholesky_lmbda(z_new, lmbda, self.mu, self.L_C)
+            # low-rank update of Cholesky, costs O(d^2) only, adding exploration noise on the fly
+            self.mu, self.L_C = rank_one_update_mean_covariance_cholesky_lmbda(z_new,
+                                                                               lmbda,
+                                                                               self.mu,
+                                                                               self.L_C,
+                                                                               self.nu2,
+                                                                               self.gamma2)
             
             # update scalling parameter if wanted
             if self.acc_star is not None:
@@ -102,15 +107,9 @@ class AdaptiveMetropolis():
             raise ValueError("AM has not seen data yet." \
                              "Either call set_batch_covariance() or set update schedule")
         
-        # add scaling factor
-        scalled_L_C = self.L_C * np.sqrt(self.nu2)
-        
-        # add exploration noise
-        scalled_L_C[np.diag_indices_from(scalled_L_C)] += np.sqrt(self.gamma2)
-        
         # generate proposal
-        proposal = sample_gaussian(N=1, mu=y, Sigma=scalled_L_C, is_cholesky=True)[0]
-        proposal_log_prob = log_gaussian_pdf(proposal, y, scalled_L_C, is_cholesky=True)
+        proposal = sample_gaussian(N=1, mu=y, Sigma=self.L_C, is_cholesky=True)[0]
+        proposal_log_prob = log_gaussian_pdf(proposal, y, self.L_C, is_cholesky=True)
         
         # probability of proposing y when would be sitting at proposal is symmetric
         return proposal, proposal_log_prob, proposal_log_prob
