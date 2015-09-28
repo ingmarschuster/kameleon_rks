@@ -32,8 +32,8 @@ def delayed_banana_log_pdf(x):
     return log_banana_pdf(x, bananicity=bananicity, V=V)
 
 # target log pdf function handle
-target_log_pdf = lambda x: log_banana_pdf(x, bananicity=bananicity, V=V)
 target_log_pdf = delayed_banana_log_pdf
+target_log_pdf = lambda x: log_banana_pdf(x, bananicity=bananicity, V=V)
 D = 2
 
 # oracle samples: these can e.g. be obtained from a long MCMC run
@@ -70,7 +70,7 @@ nu2_am = 0.19  # tuned to achieve 0.23 for D=2 with 1000 oracle samples
 nu2_mh = 10.9
 
 # MCMC parameters
-num_iter = 20000
+num_iter = 2000
 time_budget = 1000
 start = np.zeros(D)
 start[1] = -10
@@ -118,7 +118,7 @@ if True:
         print("Time taken: %.4f" % time_taken)
         print("min ess: %.2f, norm of mean: %.2f, mmd: %.2e" % (ess, norm_of_mean, mmd))
         print("min ess/time: %.2f, norm of mean * time = %.2f, mmd*time=%.2e" % \
-              (ess / time_taken, norm_of_mean*time_taken, mmd * time_taken))
+              (ess / time_taken, norm_of_mean * time_taken, mmd * time_taken))
         print("Final nu2: %.2f" % sampler.nu2)
         print("emp quanitles: %s" % str(Banana(bananicity=bananicity, V=V).emp_quantiles(samples)))
         print("\n")

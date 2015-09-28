@@ -64,8 +64,13 @@ class AdaptiveMetropolis():
         self.L_C = np.linalg.cholesky(np.cov(Z.T)+np.eye(Z.shape[1])*self.gamma2)
     
     def update_scaling(self, accept_prob):
-        assert(self.schedule is not None)
-        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+        # generate updating weight
+        lmbda = self.schedule(self.t)
+        
+        # difference desired and actuall acceptance rate
+        diff = accept_prob - self.acc_star
+            
+        self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
 
     def next_iteration(self):
         self.t += 1
@@ -81,7 +86,7 @@ class AdaptiveMetropolis():
         z_new                   - A 1-dimensional array of size (D) of.
         previous_accpept_prob   - Acceptance probability of previous iteration
         """
-        self.t += 1
+        self.next_iteration()
         
         if self.schedule is not None:
             # generate updating weight

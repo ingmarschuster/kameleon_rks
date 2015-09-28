@@ -93,8 +93,13 @@ class KameleonGaussian():
         self.set_oracle_samples(Z)
     
     def update_scaling(self, accept_prob):
-        assert(self.schedule is not None)
-        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+        # generate learning rate
+        lmbda = self.schedule(self.t)
+        
+        # difference desired and actuall acceptance rate
+        diff = accept_prob - self.acc_star
+            
+        self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
 
     def next_iteration(self):
         self.t += 1
@@ -110,7 +115,7 @@ class KameleonGaussian():
         z_new                       - A 1-dimensional array of size (D) of.
         previous_accpept_prob       - Acceptance probability of previous iteration
         """
-        self.t += 1
+        self.next_iteration()
         self.chain_history.append(z_new)
         
         if self.schedule is not None:
@@ -127,8 +132,7 @@ class KameleonGaussian():
             
             # update scaling parameter if wanted
             if self.acc_star is not None:
-                diff = previous_accpept_prob - self.acc_star
-                self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
+                self.update_scaling(previous_accpept_prob)
                 self.nu2s.append(self.nu2)
             
             # update kernel parameter if history contains at least n samples
