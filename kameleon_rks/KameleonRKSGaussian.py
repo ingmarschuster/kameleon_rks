@@ -108,8 +108,13 @@ class KameleonRKSGaussian():
         self.C = np.cov(Phi.T)
     
     def update_scaling(self, accept_prob):
-        assert(self.schedule is not None)
-        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+        # generate learning rate
+        lmbda = self.schedule(self.t)
+        
+        # difference desired and actuall acceptance rate
+        diff = accept_prob - self.acc_star
+            
+        self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
 
     def next_iteration(self):
         self.t += 1
@@ -126,7 +131,7 @@ class KameleonRKSGaussian():
         z_new                       - A 1-dimensional array of size (D) of.
         previous_accpept_prob       - Acceptance probability of previous iteration
         """
-        self.t += 1
+        self.next_iteration()
         
         if self.schedule is not None:
             # generate updating weight
@@ -209,7 +214,7 @@ class KameleonRKSGaussian():
         grad_phi_y = feature_map_grad_single(y, self.omega, self.u)
         
         # construct covariance, adding exploration noise
-        R = self.gamma2 * np.eye(self.D) + self.nu2 * np.dot(grad_phi_y, (self.m**2)*np.dot(self.C, grad_phi_y.T))
+        R = self.gamma2 * np.eye(self.D) + self.nu2 * np.dot(grad_phi_y, (self.m ** 2) * np.dot(self.C, grad_phi_y.T))
         L_R = np.linalg.cholesky(R)
         
         return L_R
