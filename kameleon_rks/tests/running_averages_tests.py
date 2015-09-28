@@ -105,16 +105,62 @@ def test_rank_one_update_mean_covariance_cholesky_lmbda():
     mean = np.mean(X, 0)
     Sigma = np.cov(X.T)
     L = np.linalg.cholesky(Sigma)
-    assert_allclose(np.dot(L,L.T), Sigma)
+    assert_allclose(np.dot(L, L.T), Sigma)
     
     # update with one more vector
     u = np.random.randn(D)
     lmbda = 0.1
     
     updated_mean = (1 - lmbda) * mean + lmbda * u
-    updated_Sigma = (1-lmbda)*Sigma + lmbda * np.outer(u - mean, u - mean)
+    updated_Sigma = (1 - lmbda) * Sigma + lmbda * np.outer(u - mean, u - mean)
     updated_L = np.linalg.cholesky(updated_Sigma)
     
     m_test, L_test = rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda, mean, L)
+    assert_allclose(updated_mean, m_test)
+    assert_allclose(updated_L, L_test)
+
+def test_rank_one_update_mean_covariance_cholesky_lmbda_gamma2():
+    D = 3
+    N = 100
+    X = np.random.randn(N, D)
+    gamma2 = 2.
+    
+    mean = np.mean(X, 0)
+    Sigma = np.cov(X.T)
+    L = np.linalg.cholesky(Sigma)
+    assert_allclose(np.dot(L, L.T), Sigma)
+    
+    # update with one more vector
+    u = np.random.randn(D)
+    lmbda = 0.1
+    
+    updated_mean = (1 - lmbda) * mean + lmbda * u
+    updated_Sigma = (1 - lmbda) * Sigma + lmbda * np.outer(u - mean, u - mean) + lmbda * gamma2 * np.eye(D)
+    updated_L = np.linalg.cholesky(updated_Sigma)
+    
+    m_test, L_test = rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda, mean, L, gamma2=gamma2)
+    assert_allclose(updated_mean, m_test)
+    assert_allclose(updated_L, L_test)
+
+def test_rank_one_update_mean_covariance_cholesky_lmbda_nu2():
+    D = 3
+    N = 100
+    X = np.random.randn(N, D)
+    nu2 = 2.
+    
+    mean = np.mean(X, 0)
+    Sigma = np.cov(X.T)
+    L = np.linalg.cholesky(Sigma)
+    assert_allclose(np.dot(L, L.T), Sigma)
+    
+    # update with one more vector
+    u = np.random.randn(D)
+    lmbda = 0.1
+    
+    updated_mean = (1 - lmbda) * mean + lmbda * u
+    updated_Sigma = (1 - lmbda) * Sigma + lmbda * nu2 * np.outer(u - mean, u - mean)
+    updated_L = np.linalg.cholesky(updated_Sigma)
+    
+    m_test, L_test = rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda, mean, L, nu2=2.)
     assert_allclose(updated_mean, m_test)
     assert_allclose(updated_L, L_test)

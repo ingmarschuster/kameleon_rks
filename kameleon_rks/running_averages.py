@@ -114,7 +114,7 @@ def rank_m_update_mean_covariance(X, n=0., mean=None, M2=None, ddof=0):
         mean = mean + delta / n
         M2 = M2 + np.outer(delta, x - mean)
     
-    cov = M2 / (n-ddof)
+    cov = M2 / (n - ddof)
     
     return mean, cov, n, M2
 
@@ -163,14 +163,17 @@ def rank_one_update_mean_covariance_cholesky_naive(x, n=0., mean=None, M2=None, 
     return mean, cov_L, n, M2, M2_L
 
 
-def rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda=.1, mean=None, cov_L=None):
+def rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda=.1, mean=None, cov_L=None, nu2=1., gamma2=None):
     """
     Returns updated mean and Cholesky of sum of outer products following a
-    (1-lmbda)*old + lmbda*new rule
+    (1-lmbda)*old + lmbda* nu2*uu^T
+    rule
+    
+    Optional: If gamma2 is given, an isotropic term gamma2 * I is added to the uu^T part
     
     where old mean and cov_L=Cholesky(old) (lower Cholesky) are given.
     
-    Performs efficient rank-one updates of the Cholesky directly. 
+    Performs efficient rank-one updates of the Cholesky directly.
     """
     assert lmbda >= 0 and lmbda <= 1
     assert u.ndim == 1
@@ -178,8 +181,9 @@ def rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda=.1, mean=None, cov_L
     
     # check if first term
     if mean is None or cov_L is None :
+        # in that case, zero mean and scaled identity matrix
         mean = np.zeros(D)
-        cov_L = np.zeros((D, D))
+        cov_L = np.eye(D) * nu2
     else:
         assert len(mean) == D
         assert mean.ndim == 1
@@ -190,9 +194,41 @@ def rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda=.1, mean=None, cov_L
     # update mean
     updated_mean = (1 - lmbda) * mean + lmbda * u
     
-    # update Cholesky
-    update_cov_L = np.sqrt(1-lmbda)*cov_L.T
-    cholupdate(update_cov_L, np.sqrt(lmbda)*(u - mean))
+    # update Cholesky: first downscale existing Cholesky
+    update_cov_L = np.sqrt(1 - lmbda) * cov_L.T
+    
+    # rank-one update of the centered new vector
+    update_vec = np.sqrt(lmbda) * np.sqrt(nu2) * (u - mean)
+    cholupdate(update_cov_L, update_vec)
+    
+    # optional: add isotropic term if specified, requires looping rank-one updates over
+    # all basis vectors e_1, ..., e_D
+    if gamma2 is not None:
+        e_d = np.zeros(D)
+        for d in range(D):
+            e_d[:] = 0
+            e_d[d] = np.sqrt(gamma2)
+            
+            # could do a Cholesky update, but this routine does a loop over dimensions
+            # where the vector only has one non-zero component
+            # That is O(D^2) and therefore not efficient when used in a loop
+            cholupdate(update_cov_L, np.sqrt(lmbda) * e_d)
+            
+            # TODO:
+            # in contrast, can do a simplified update when knowing that e_d is sparse
+            # manual Cholesky update (only doing the d-th component of algorithm on
+            # https://en.wikipedia.org/wiki/Cholesky_decomposition#Rank-one_update
+#             # wiki (MB) code:
+#             r = sqrt(L(k,k)^2 + x(k)^2);
+#             c = r / L(k, k);
+#             s = x(k) / L(k, k);
+#             L(k, k) = r;
+#             L(k+1:n,k) = (L(k+1:n,k) + s*x(k+1:n)) / c;
+#             x(k+1:n) = c*x(k+1:n) - s*L(k+1:n,k);
+
+    # since cholupdate works on transposed version
     update_cov_L = update_cov_L.T
+    
+    # done updating Cholesky
     
     return updated_mean, update_cov_L

@@ -23,7 +23,7 @@ class Metropolis():
         self.acc_star = acc_star
         
         # some sanity checks
-        assert acc_star > 0 and acc_star < 1
+        assert acc_star is None or acc_star > 0 and acc_star < 1
         if schedule is not None:
             lmbdas = np.array([schedule(t) for t in  np.arange(100)])
             assert np.all(lmbdas > 0)
