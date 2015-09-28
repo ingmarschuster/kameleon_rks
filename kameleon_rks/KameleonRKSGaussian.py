@@ -106,6 +106,13 @@ class KameleonRKSGaussian():
         Phi = feature_map(Z, self.omega, self.u)
         self.mu = np.mean(Phi, axis=0)
         self.C = np.cov(Phi.T)
+    
+    def update_scaling(self, accept_prob):
+        assert(self.schedule is not None)
+        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+
+    def next_iteration(self):
+        self.t += 1
         
 
     def update(self, z_new, previous_accpept_prob):
@@ -135,8 +142,7 @@ class KameleonRKSGaussian():
             
             # update scalling parameter if wanted
             if self.acc_star is not None:
-                diff = previous_accpept_prob - self.acc_star
-                self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
+                self.update_scaling(previous_accpept_prob)
                 self.nu2s.append(self.nu2)
             
             if self.update_kernel_gamma is not None:

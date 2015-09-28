@@ -57,13 +57,19 @@ class AdaptiveMetropolis():
         else:
             # make user call the set_batch_covariance() function
             self.mu = None
-            self.L_C = None
-            
+            self.L_C = None     
 
     def set_batch_covariance(self, Z):
         self.mu = np.mean(Z, axis=0)
-        self.L_C = np.linalg.cholesky(np.cov(Z.T))
+        self.L_C = np.linalg.cholesky(np.cov(Z.T)+np.eye(Z.shape[1])*self.gamma2)
+    
+    def update_scaling(self, accept_prob):
+        assert(self.schedule is not None)
+        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
 
+    def next_iteration(self):
+        self.t += 1
+        
     def update(self, z_new, previous_accpept_prob):
         """
         Updates the proposal covariance and potentially scaling parameter, according to schedule.
@@ -86,7 +92,7 @@ class AdaptiveMetropolis():
             
             # update scalling parameter if wanted
             if self.acc_star is not None:
-                self.nu2 = np.exp(np.log(self.nu2) + lmbda * (previous_accpept_prob - self.acc_star))
+                self.update_scaling(previous_accpept_prob)
     
     def proposal(self, y):
         """

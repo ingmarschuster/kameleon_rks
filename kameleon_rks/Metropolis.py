@@ -37,6 +37,16 @@ class Metropolis():
         """
         # initialise running averages for covariance
         self.t = 0
+    
+    def set_batch_covariance(self, Z):
+        pass
+    
+    def update_scaling(self, accept_prob):
+        assert(self.schedule is not None)
+        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+
+    def next_iteration(self):
+        self.t += 1
         
     def update(self, z_new, previous_accpept_prob):
         """
@@ -57,7 +67,7 @@ class Metropolis():
             
             # update scalling parameter if wanted
             if self.acc_star is not None:
-                self.nu2 = np.exp(np.log(self.nu2) + lmbda * (previous_accpept_prob - self.acc_star))
+                self.update_scaling(previous_accpept_prob)
     
     def proposal(self, y):
         """

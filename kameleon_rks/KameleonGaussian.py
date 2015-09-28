@@ -88,6 +88,16 @@ class KameleonGaussian():
 
     def set_oracle_samples(self, Z):
         self.Z = Z
+    
+    def set_batch_covariance(self, Z):
+        self.set_oracle_samples(Z)
+    
+    def update_scaling(self, accept_prob):
+        assert(self.schedule is not None)
+        self.nu2 = np.exp(np.log(self.nu2) + self.schedule(self.t) * (accept_prob - self.acc_star))
+
+    def next_iteration(self):
+        self.t += 1
 
     def update(self, z_new, previous_accpept_prob):
         """
