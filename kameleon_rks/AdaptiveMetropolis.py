@@ -33,7 +33,7 @@ class AdaptiveMetropolis():
         self.acc_star = acc_star
         
         # some sanity checks
-        assert acc_star > 0 and acc_star < 1
+        assert acc_star is None or acc_star > 0 and acc_star < 1
         if schedule is not None:
             lmbdas = np.array([schedule(t) for t in  np.arange(100)])
             assert np.all(lmbdas > 0)
@@ -52,8 +52,8 @@ class AdaptiveMetropolis():
             # start from scratch
             self.mu = np.zeros(self.D)
             
-            # initialise as isotropic, otherwise Cholesky updates fail
-            self.L_C = np.eye(self.D)
+            # initialise as scaled isotropic, otherwise Cholesky updates fail
+            self.L_C = np.eye(self.D) * self.nu2
         else:
             # make user call the set_batch_covariance() function
             self.mu = None
