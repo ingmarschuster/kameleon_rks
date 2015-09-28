@@ -3,7 +3,7 @@ import time
 import numpy as np
 
 
-def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, quiet = False):
+def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, target_eval_duration = 0, quiet = False):
     # MCMC results
     samples = np.zeros((num_iter, D))
     proposals = np.zeros((num_iter, D))
@@ -18,12 +18,13 @@ def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, q
     # init MCMC (first iteration)
     current = start.copy()
     current_target_log_prob = target_log_pdf(current)
+    target_evals = 1
     for it in range(num_iter):
         times[it] = time.time()
         
         # stop sampling if time budget exceeded
         if time_budget is not None:
-            if times[it] > times[0] + time_budget:
+            if times[it] > times[0] + time_budget + target_eval_duration*target_evals:
                 print("Time limit of %ds exceeded. Stopping MCMC at iteration %d." % (time_budget, it))
                 break
         
@@ -40,6 +41,7 @@ def mini_mcmc(sampler, start, num_iter, target_log_pdf, D, time_budget = None, q
         # propose
         proposal, proposal_log_prob, proposal_log_prob_inv = sampler.proposal(current)
         proposal_target_log_prob = target_log_pdf(proposal)
+        target_evals += 1
         
         # Metropolis-Hastings acceptance probability
         accept_log_prob = proposal_target_log_prob - current_target_log_prob + \
