@@ -11,7 +11,7 @@ from kameleon_rks.gaussian_rks import feature_map, sample_basis, \
     gamma_median_heuristic
 import matplotlib.pyplot as plt
 import numpy as np
-from scripts.mini_mcmc import mini_mcmc
+from kameleon_rks import mini_mcmc.mini_mcmc
 from tools.convergence_stats import min_ess
 
 
