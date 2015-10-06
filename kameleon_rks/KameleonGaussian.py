@@ -62,12 +62,12 @@ class KameleonGaussian():
             
         if schedule is not None:
             lmbdas = np.array([schedule(t) for t in  np.arange(100)])
-            assert np.all(lmbdas > 0)
+            assert np.all(lmbdas >= 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
             
         if self.update_kernel_gamma_schedule is not None:
             lmbdas = np.array([update_kernel_gamma_schedule(t) for t in  np.arange(100)])
-            assert np.all(lmbdas > 0)
+            assert np.all(lmbdas >= 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
         
         self.initialise()
