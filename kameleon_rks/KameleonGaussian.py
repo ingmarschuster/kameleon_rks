@@ -15,7 +15,7 @@ class KameleonGaussian():
         """
         D                            - Input space dimension
         kernel_gamma                 - Gaussian kernel parameter
-        n                            - Number of sub-samples of the chain history
+        n                            - Number of sub-samples of the chain history, if used in adaptive mode.
         gamma2                       - Exploration parameter. Kameleon falls back
                                        to random walk with that scaling when in unexplored regions.
                                        Increasing increases exploration but decreases mixing in explored regions.
@@ -62,12 +62,12 @@ class KameleonGaussian():
             
         if schedule is not None:
             lmbdas = np.array([schedule(t) for t in  np.arange(100)])
-            assert np.all(lmbdas > 0)
+            assert np.all(lmbdas >= 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
             
         if self.update_kernel_gamma_schedule is not None:
             lmbdas = np.array([update_kernel_gamma_schedule(t) for t in  np.arange(100)])
-            assert np.all(lmbdas > 0)
+            assert np.all(lmbdas >= 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
         
         self.initialise()
@@ -88,6 +88,10 @@ class KameleonGaussian():
 
     def set_oracle_samples(self, Z):
         self.Z = Z
+        
+        if len(Z) > self.n:
+            inds = np.random.permutation(len(Z))[:self.n]
+            self.Z = Z[inds]
     
     def set_batch_covariance(self, Z):
         self.set_oracle_samples(Z)
@@ -100,6 +104,30 @@ class KameleonGaussian():
         diff = accept_prob - self.acc_star
             
         self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
+        
+        # update kernel parameter if history contains at least n samples
+        if self.update_kernel_gamma:
+            self.update_kernel_scaling()
+
+    def update_kernel_scaling(self):
+        # probability of updating
+        if self.update_kernel_gamma_schedule is not None:
+            update_prob = self.update_kernel_gamma_schedule(self.t)
+        else:
+            update_prob = 1. / (self.t + 1)
+        
+        # update kernel bandwidth (if window full yet)
+        if np.random.rand() < update_prob:
+            # compute new kernel gamma
+            print("Checking whether to update kernel_gamma")
+            new_kernel_gamma = gamma_median_heuristic(self.Z, self.n)
+            diff = np.abs(new_kernel_gamma - self.kernel_gamma)
+            
+            # only update if change above tolerance
+            if np.abs(diff > self.update_kernel_gamma_tol):
+                self.kernel_gamma = new_kernel_gamma
+                
+                print("Updated kernel gamma to %.3f" % self.kernel_gamma)
 
     def next_iteration(self):
         self.t += 1
@@ -134,27 +162,6 @@ class KameleonGaussian():
             if self.acc_star is not None:
                 self.update_scaling(previous_accpept_prob)
                 self.nu2s.append(self.nu2)
-            
-            # update kernel parameter if history contains at least n samples
-            if self.update_kernel_gamma and self.t >= self.n:
-                # probability of updating
-                if self.update_kernel_gamma_schedule is not None:
-                    update_prob = self.update_kernel_gamma_schedule(self.t)
-                else:
-                    update_prob = 1. / (self.t + 1)
-                
-                # update kernel bandwidth (if window full yet)
-                if np.random.rand() < update_prob:
-                    # compute new kernel gamma
-                    print("Checking whether to update kernel_gamma")
-                    new_kernel_gamma = gamma_median_heuristic(self.Z, self.n)
-                    diff = np.abs(new_kernel_gamma - self.kernel_gamma)
-                    
-                    # only update if change above tolerance
-                    if np.abs(diff > self.update_kernel_gamma_tol):
-                        self.kernel_gamma = new_kernel_gamma
-                        
-                        print("Updated kernel gamma to %.3f" % self.kernel_gamma)
     
     def proposal(self, y):
         """

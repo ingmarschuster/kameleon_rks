@@ -36,7 +36,7 @@ class AdaptiveMetropolis():
         assert acc_star is None or acc_star > 0 and acc_star < 1
         if schedule is not None:
             lmbdas = np.array([schedule(t) for t in  np.arange(100)])
-            assert np.all(lmbdas > 0)
+            assert np.all(lmbdas >= 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
         
         self.initialise()
