@@ -31,6 +31,7 @@ class AdaptiveLangevin(AdaptiveMetropolis):
         AdaptiveMetropolis.__init__(self, D, nu2, gamma2, schedule, acc_star)
         
         self.grad = grad
+        self.eps = eps
     
     def proposal(self, y):
         """
