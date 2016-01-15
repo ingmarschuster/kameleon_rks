@@ -12,13 +12,13 @@ class StaticMetropolis(ProposalBase):
     def __init__(self, D, target_log_pdf, step_size, schedule=None, acc_star=None):
         ProposalBase.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
-        self.L_C = np.eye(self.D) * np.sqrt(self.step_size)
+        self.L_C = np.eye(self.D)
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
+        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C * np.sqrt(self.step_size), is_cholesky=True)[0]
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         # probability of proposing current when would be sitting at proposal is symmetric
@@ -27,10 +27,6 @@ class StaticMetropolis(ProposalBase):
         results_kwargs = {}
         
         return proposal, np.exp(acc_log_prob), proposal_log_pdf, results_kwargs
-
-    def update_step_size(self, previous_accept_probs):
-        ProposalBase.update_step_size(self, previous_accept_probs)
-        self.L_C = np.eye(self.D) * np.sqrt(self.step_size)
 
 class AdaptiveMetropolis(StaticMetropolis):
     """
@@ -69,6 +65,6 @@ class AdaptiveMetropolis(StaticMetropolis):
                                                                                lmbda,
                                                                                self.mu,
                                                                                self.L_C,
-                                                                               self.step_size,
+                                                                               1.,
                                                                                self.gamma2)
 

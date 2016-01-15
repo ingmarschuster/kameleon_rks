@@ -166,7 +166,7 @@ def rank_one_update_mean_covariance_cholesky_naive(x, n=0., mean=None, M2=None, 
 def rank_one_update_mean_covariance_cholesky_lmbda(u, lmbda=.1, mean=None, cov_L=None, nu2=1., gamma2=None):
     """
     Returns updated mean and Cholesky of sum of outer products following a
-    (1-lmbda)*old + lmbda* nu2*uu^T
+    (1-lmbda)*old + lmbda* nu2*(uu^T + gamma2*I)
     rule
     
     Optional: If gamma2 is given, an isotropic term gamma2 * I is added to the uu^T part

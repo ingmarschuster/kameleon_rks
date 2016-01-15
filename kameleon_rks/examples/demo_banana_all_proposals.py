@@ -1,7 +1,8 @@
 from kameleon_rks.densities.banana import log_banana_pdf
 from kameleon_rks.examples.plotting import visualise_trace
 from kameleon_rks.mcmc.mini_mcmc import mini_mcmc
-from kameleon_rks.proposals.Metropolis import StaticMetropolis
+from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
+    AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +11,7 @@ import numpy as np
 def sqrt_schedule(t):
     return 1 / np.sqrt(1 + t)
 
-def get_StaticMetropolisInstance(D, target_log_pdf):
+def get_StaticMetropolis_instance(D, target_log_pdf):
     
     step_size = 8.
     schedule = sqrt_schedule
@@ -19,6 +20,15 @@ def get_StaticMetropolisInstance(D, target_log_pdf):
     
     return instance
 
+def get_AdaptiveMetropolis_instance(D, target_log_pdf):
+    
+    step_size = 8.
+    schedule = sqrt_schedule
+    acc_star = 0.234
+    gamma2 = 0.1
+    instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule, acc_star)
+    
+    return instance
 
 if __name__ == '__main__':
     Log.set_loglevel(20)
@@ -29,7 +39,9 @@ if __name__ == '__main__':
     target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
 
     samplers = [
-                get_StaticMetropolisInstance(D, target_log_pdf),
+                get_StaticMetropolis_instance(D, target_log_pdf),
+                get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                
                 ]
 
     for sampler in samplers:
