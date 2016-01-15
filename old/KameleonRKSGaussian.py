@@ -1,7 +1,7 @@
 import collections
 
-from kameleon_rks.gaussian import sample_gaussian, log_gaussian_pdf
-from kameleon_rks.gaussian_rks import sample_basis, feature_map, \
+from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
+from old.gaussian_rks import sample_basis, feature_map, \
     feature_map_grad_single, feature_map_single, gamma_median_heuristic
 import numpy as np
 
@@ -11,7 +11,7 @@ class KameleonRKSGaussian():
     Implements a random kitchen sink version of Kameleon MCMC.
     """
     
-    def __init__(self, D, kernel_gamma, m, nu2, gamma2=0.1, schedule=None, acc_star=0.234,
+    def __init__(self, D, kernel_gamma, m, step_size, gamma2=0.1, schedule=None, acc_star=0.234,
                  update_kernel_gamma=None, update_kernel_gamma_schedule=None, update_kernel_gamma_tol=0.1):
         """
         D                            - Input space dimension
@@ -20,14 +20,14 @@ class KameleonRKSGaussian():
         gamma2                       - Exploration parameter. Kameleon falls back
                                        to random walk with that scaling when in unexplored regions.
                                        Increasing increases exploration but decreases mixing in explored regions.
-        nu2                         - Gradient step size. Effectively a scaling parameter.
+        step_size                         - Gradient step size. Effectively a scaling parameter.
         schedule                     - Optional. Function that generates adaptation weights
                                        given the MCMC iteration number.
                                        The weights are used in the stochastic updating of the
                                        feature covariance.
                                        If not set, feature covariance is never updated. In that case, call
                                        batch_covariance() before using. 
-        acc_star                       Optional: If set, the nu2 parameter is tuned so that
+        acc_star                       Optional: If set, the step_size parameter is tuned so that
                                        average acceptance equals eta_star, using the same schedule
                                        as for the covariance update (If schedule is set, otherwise
                                        ignored)
@@ -52,7 +52,7 @@ class KameleonRKSGaussian():
         self.m = m
         self.D = D
         self.gamma2 = gamma2
-        self.nu2 = nu2
+        self.step_size = step_size
         self.schedule = schedule
         self.acc_star = acc_star
         self.update_kernel_gamma = update_kernel_gamma
@@ -60,7 +60,7 @@ class KameleonRKSGaussian():
         self.update_kernel_gamma_tol = update_kernel_gamma_tol
         
         # scaling parameter evolution might be collected to assess convergence
-        self.nu2s = [nu2]
+        self.nu2s = [step_size]
         
         # some sanity checks
         if acc_star is not None:
@@ -79,23 +79,23 @@ class KameleonRKSGaussian():
             assert np.all(lmbdas > 0)
             assert np.allclose(np.sort(lmbdas)[::-1], lmbdas)
         
-        self.initialise()
+        self._initialise()
     
-    def initialise(self):
+    def _initialise(self):
         """
         Initialises internal state. To be called before MCMC chain starts.
         """
         # fix feature space random basis
         self.omega, self.u = sample_basis(self.D, self.m, self.kernel_gamma)
         
-        # initialise running averages for feature covariance
+        # _initialise running averages for feature covariance
         self.t = 0
 
         if self.schedule is not None:
             # start from scratch
             self.mu = np.zeros(self.m)
             
-            # initialise as isotropic
+            # _initialise as isotropic
             self.C = np.eye(self.m)
         else:
             # make user call the set_batch_covariance() function
@@ -107,14 +107,14 @@ class KameleonRKSGaussian():
         self.mu = np.mean(Phi, axis=0)
         self.C = np.cov(Phi.T)
     
-    def update_scaling(self, accept_prob):
+    def update_step_size(self, accept_prob):
         # generate learning rate
         lmbda = self.schedule(self.t)
         
         # difference desired and actuall acceptance rate
         diff = accept_prob - self.acc_star
             
-        self.nu2 = np.exp(np.log(self.nu2) + lmbda * diff)
+        self.step_size = np.exp(np.log(self.step_size) + lmbda * diff)
 
     def next_iteration(self):
         self.t += 1
@@ -147,8 +147,8 @@ class KameleonRKSGaussian():
             
             # update scalling parameter if wanted
             if self.acc_star is not None:
-                self.update_scaling(previous_accpept_prob)
-                self.nu2s.append(self.nu2)
+                self.update_step_size(previous_accpept_prob)
+                self.nu2s.append(self.step_size)
             
             if self.update_kernel_gamma is not None:
                 # update sliding window
@@ -187,26 +187,26 @@ class KameleonRKSGaussian():
                         
                         print("Updated kernel gamma to %.3f (from %d samples)" % (self.kernel_gamma, num_samples_window))
     
-    def proposal(self, y):
+    def proposal(self, current):
         """
-        Returns a sample from the proposal centred at y, and its log-probability
+        Returns a sample from the proposal centred at current, and its log-probability
         """
         
         if self.schedule is None and (self.mu is None or self.C is None):
             raise ValueError("Kameleon has not seen data yet." \
                              "Either call set_batch_covariance() or set update schedule")
         
-        L_R = self.construct_proposal_covariance_(y)
-        proposal = sample_gaussian(N=1, mu=y, Sigma=L_R, is_cholesky=True)[0]
-        proposal_log_prob = log_gaussian_pdf(proposal, y, L_R, is_cholesky=True)
+        L_R = self._construct_proposal_covariance(current)
+        proposal = sample_gaussian(N=1, mu=current, Sigma=L_R, is_cholesky=True)[0]
+        proposal_log_prob = log_gaussian_pdf(proposal, current, L_R, is_cholesky=True)
         
-        # probability of proposing y when would be sitting at proposal
-        L_R_inv = self.construct_proposal_covariance_(proposal)
-        proopsal_log_prob_inv = log_gaussian_pdf(y, proposal, L_R_inv, is_cholesky=True)
+        # probability of proposing current when would be sitting at proposal
+        L_R_inv = self._construct_proposal_covariance(proposal)
+        proopsal_log_prob_inv = log_gaussian_pdf(current, proposal, L_R_inv, is_cholesky=True)
         
         return proposal, proposal_log_prob, proopsal_log_prob_inv
     
-    def construct_proposal_covariance_(self, y):
+    def _construct_proposal_covariance(self, y):
         """
         Helper method to compute Cholesky factor of the Gaussian Kameleon-lite proposal centred at y.
         """
@@ -214,7 +214,7 @@ class KameleonRKSGaussian():
         grad_phi_y = feature_map_grad_single(y, self.omega, self.u)
         
         # construct covariance, adding exploration noise
-        R = self.gamma2 * np.eye(self.D) + self.nu2 * np.dot(grad_phi_y, (self.m ** 2) * np.dot(self.C, grad_phi_y.T))
+        R = self.gamma2 * np.eye(self.D) + self.step_size * np.dot(grad_phi_y, (self.m ** 2) * np.dot(self.C, grad_phi_y.T))
         L_R = np.linalg.cholesky(R)
         
         return L_R

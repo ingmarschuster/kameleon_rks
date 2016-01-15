@@ -1,6 +1,6 @@
-from kameleon_rks.banana import sample_banana
-from kameleon_rks.gaussian import sample_gaussian
-from kameleon_rks.gaussian_rks import sample_basis, feature_map,\
+from kameleon_rks.densities.banana import sample_banana
+from kameleon_rks.densities.gaussian import sample_gaussian
+from old.gaussian_rks import sample_basis, feature_map,\
     feature_map_single, feature_map_grad_single
 import matplotlib.pyplot as plt
 import numpy as np

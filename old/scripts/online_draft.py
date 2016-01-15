@@ -1,5 +1,5 @@
-from kameleon_rks.KameleonRKSGaussian import KameleonRKSGaussian
-from kameleon_rks.banana import sample_banana
+from old import KameleonRKSGaussian.KameleonRKSGaussian
+from kameleon_rks.densities.banana import sample_banana
 from kameleon_rks.gaussian_rks import sample_basis, gamma_median_heuristic
 import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +27,7 @@ schedule = lambda t: 1.
 
 # sampler instance
 kameleon_rks = KameleonRKSGaussian(D, kernel_gamma, m, gamma2, eta2, schedule)
-kameleon_rks.initialise()
+kameleon_rks._initialise()
 
 # proposals centred at those points
 Ys = np.array([[0, 10], [-20, -8], [-20, 9.7], [-10, 0], [0, -3], [10, 0], [20, 9.7]])

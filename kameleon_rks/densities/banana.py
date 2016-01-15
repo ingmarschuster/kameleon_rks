@@ -68,7 +68,7 @@ class Banana(object):
     def log_pdf(self, x):
         return log_banana_pdf(x, self.bananicity, self.V, compute_grad=False)
     
-    def grad(self, x):
+    def target_log_grad(self, x):
         return log_banana_pdf(x, self.bananicity, self.V, compute_grad=True)
     
     def emp_quantiles(self, X, quantiles=np.arange(0.1, 1, 0.1)):
