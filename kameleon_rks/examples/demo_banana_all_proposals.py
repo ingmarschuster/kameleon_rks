@@ -1,6 +1,6 @@
 from kameleon_rks.densities.banana import log_banana_pdf
 from kameleon_rks.examples.plotting import visualise_trace
-from old import mini_mcmc.mini_mcmc
+from kameleon_rks.mcmc.mini_mcmc import mini_mcmc
 from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.tools.log import Log
 import matplotlib.pyplot as plt
@@ -40,7 +40,6 @@ if __name__ == '__main__':
         # run MCMC
         samples, proposals, accepted, acc_prob, log_pdf, times, step_sizes = mini_mcmc(sampler, start, num_iter, D)
         
-        plt.figure()
         visualise_trace(samples, log_pdf, accepted, step_sizes)
         plt.suptitle("%s, acceptance rate: %.2f" % \
                      (sampler.__class__.__name__, np.mean(accepted)))
