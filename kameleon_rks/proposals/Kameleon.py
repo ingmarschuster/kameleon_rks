@@ -27,19 +27,19 @@ class StaticKameleon(StaticMetropolis):
         self.Z = Z
     
     def proposal(self, current, current_log_pdf, **kwargs):
-        if self.schedule is None and self.Z is None:
+        if self.Z is None:
             raise ValueError("%s has not seen data yet. Call set_batch()" % self.__class__.__name__)
         
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        L_R = self.construct_proposal_covariance_(current)
+        L_R = self._construct_proposal_covariance(current)
         proposal = sample_gaussian(N=1, mu=current, Sigma=L_R, is_cholesky=True)[0]
         proposal_log_prob = log_gaussian_pdf(proposal, current, L_R, is_cholesky=True)
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         # probability of proposing y when would be sitting at proposal
-        L_R_inv = self.construct_proposal_covariance_(proposal)
+        L_R_inv = self._construct_proposal_covariance(proposal)
         proopsal_log_prob_inv = log_gaussian_pdf(current, proposal, L_R_inv, is_cholesky=True)
         
         log_acc_prob = proposal_log_pdf - current_log_pdf + proopsal_log_prob_inv - proposal_log_prob
