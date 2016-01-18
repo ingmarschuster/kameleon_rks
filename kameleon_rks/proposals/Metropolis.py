@@ -48,8 +48,10 @@ class AdaptiveMetropolis(StaticMetropolis):
             self.L_C = None
 
     def set_batch(self, Z):
-        self.mu = np.mean(Z, axis=0)
-        self.L_C = np.linalg.cholesky(self.step_size * np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
+        # avoid rank-deficient covariances
+        if len(Z) > self.D:
+            self.mu = np.mean(Z, axis=0)
+            self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
     
     def update(self, Z):
         if self.schedule is None and self.Z is None:

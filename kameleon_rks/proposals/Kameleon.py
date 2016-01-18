@@ -24,9 +24,9 @@ def gamma_median_heuristic(Z, num_subsample=1000):
     
     return gamma
 
-class StaticKameleon(StaticMetropolis):
+class OracleKameleon(StaticMetropolis):
     """
-    Implements a static version of AdaptiveKameleon MCMC.
+    Implements a version of Kameleon MCMC woith oracle samples
     """
     
     def __init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2=0.1, schedule=None, acc_star=0.234):
@@ -73,13 +73,13 @@ class StaticKameleon(StaticMetropolis):
     
     def _construct_proposal_covariance(self, y):
         """
-        Helper method to compute Cholesky factor of the Gaussian AdaptiveKameleon proposal centred at y.
+        Helper method to compute Cholesky factor of the Gaussian Kameleon proposal centred at y.
         """
         R = self.gamma2 * np.eye(self.D)
         
         if len(self.Z) > 0:
             # the code is parametrised in gamma=1./sigma
-            kernel_gamma = 1./self.kernel_sigma
+            kernel_gamma = 1. / self.kernel_sigma
             # k(y,z) = exp(-gamma ||y-z||)
             # d/dy k(y,z) = k(y,z) * (-gamma * d/dy||y-z||^2)
             #             = 2 * k(y,z) * (-gamma * ||y-z||^2)
@@ -91,7 +91,7 @@ class StaticKameleon(StaticMetropolis):
             neg_differences = self.Z - y
             G = 2 * kernel_gamma * (k.T * neg_differences)
             
-            # AdaptiveKameleon
+            # Kameleon
             G *= 2  # = M
             # R = gamma^2 I + \eta^2 * M H M^T
             H = np.eye(len(self.Z)) - 1.0 / len(self.Z)
@@ -101,29 +101,29 @@ class StaticKameleon(StaticMetropolis):
         
         return L_R
     
-class AdaptiveKameleon(StaticKameleon):
+class Kameleon(OracleKameleon):
     """
     Implements kernel adaptive StaticMetropolis Hastings.
     """
     
     def __init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2=0.1, schedule=None, acc_star=0.234):
         
-        StaticKameleon.__init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2, schedule, acc_star)
+        OracleKameleon.__init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2, schedule, acc_star)
     
     def _update_kernel_sigma(self):
         # avoid linalg errors from proposal covariance being rank defficient
         if len(self.Z) >= self.n:
             # re-compute median heuristic for kernel
-            self.kernel_sigma = 1./gamma_median_heuristic(self.Z)
+            self.kernel_sigma = 1. / gamma_median_heuristic(self.Z)
 
     def update(self, Z):
-        if self.schedule is not None:
+        if self.schedule is not None and len(Z) >= self.n:
             # generate updating probability
             lmbda = self.schedule(self.t)
             
             if np.random.rand() < lmbda:
                 # update sub-sample of chain history
-                StaticKameleon.set_batch(self, Z)
+                OracleKameleon.set_batch(self, Z)
                 logger.debug("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
                 
                 self._update_kernel_sigma()

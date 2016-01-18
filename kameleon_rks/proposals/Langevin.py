@@ -1,17 +1,18 @@
-from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
+from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.tools.log import Log
 from kameleon_rks.tools.running_averages import rank_one_update_mean_covariance_cholesky_lmbda
+from kernel_exp_family.examples.tools import visualise_fit
 import numpy as np
 
 
 logger = Log.get_logger()
 
 class StaticLangevin(StaticMetropolis):
-    def __init__(self, D, target_log_pdf, target_grad, step_size, schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, grad, step_size, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
-        self.target_grad = target_grad
+        self.grad = grad
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
@@ -21,7 +22,7 @@ class StaticLangevin(StaticMetropolis):
 #         if 'previous_backward_grad' in kwargs:
 #             forward_grad = kwargs['previous_backward_grad']
 #         else:
-        forward_grad = self.target_grad(current)
+        forward_grad = self.grad(current)
         
         # noise covariance square root with step size
         L = np.sqrt(self.step_size) * self.L_C
@@ -30,7 +31,7 @@ class StaticLangevin(StaticMetropolis):
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
         
-        backward_grad = self.target_grad(proposal)
+        backward_grad = self.grad(proposal)
         backward_mu = proposal + 0.5 * L.dot(L.T.dot(backward_grad))
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
         
@@ -44,8 +45,8 @@ class StaticLangevin(StaticMetropolis):
         return proposal, np.exp(log_acc_prob), proposal_log_pdf, result_kwargs
 
 class AdaptiveLangevin(StaticLangevin):
-    def __init__(self, D, target_log_pdf, target_grad, step_size, gamma2, schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, D, target_log_pdf, target_grad, step_size, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, grad, step_size, gamma2, schedule=None, acc_star=None):
+        StaticLangevin.__init__(self, D, target_log_pdf, grad, step_size, schedule, acc_star)
 
         self.gamma2 = gamma2
 
@@ -58,8 +59,10 @@ class AdaptiveLangevin(StaticLangevin):
             self.L_C = None
 
     def set_batch(self, Z):
-        self.mu = np.mean(Z, axis=0)
-        self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
+        # avoid rank-deficient covariances
+        if len(Z) > self.D:
+            self.mu = np.mean(Z, axis=0)
+            self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
     
     def update(self, Z):
         if self.schedule is not None:
@@ -75,22 +78,27 @@ class AdaptiveLangevin(StaticLangevin):
                                                                                self.step_size,
                                                                                self.gamma2)
     
-class StaticKernelLangevin(StaticLangevin):
+class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     """
     Implements gradient free kernel adaptive langevin proposal.
     
-    Uses the kernel exponential family to estimate the gradient.
+    Uses the kernel exponential family to estimate the gradient, useing oracle samples.
     """
     
-    def __init__(self, D, target_log_pdf, surrogate, step_size , schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule=None, acc_star=None):
+        AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, gamma2, schedule, acc_star)
         
+        self.n = n
         self.surrogate = surrogate
     
     def set_batch(self, Z):
-        self.surrogate.fit(Z)
+        AdaptiveLangevin.set_batch(self, Z)
+        
+        inds = np.random.permutation(len(Z))[:self.n]
+        logger.info("Fitting surrogate gradient model to %d/%d data." % (len(inds), len(Z)))
+        self.surrogate.fit(Z[inds])
     
-class AdaptiveKernelLangevin(AdaptiveLangevin):
+class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     """
     Implements gradient free kernel adaptive langevin proposal.
     
@@ -98,23 +106,21 @@ class AdaptiveKernelLangevin(AdaptiveLangevin):
     """
     
     def __init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule=None, acc_star=None):
-        AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, gamma2, schedule, acc_star)
+        OracleKernelAdaptiveLangevin.__init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule, acc_star)
         
         self.surrogate = surrogate
         self.n = n
     
-    def set_batch(self, Z):
-        AdaptiveLangevin.set_batch(self, Z)
-        self.surrogate.fit(Z)
-    
     def update(self, Z):
-        AdaptiveLangevin.update(self, Z)
+        OracleKernelAdaptiveLangevin.update(self, Z)
         
-        if self.schedule is not None:
+        if self.schedule is not None and len(Z) >= self.n:
             # generate updating probability
             lmbda = self.schedule(self.t)
             
             if np.random.rand() < lmbda:
                 # update sub-sample of chain history
-                self.set_batch(Z[np.random.permutation(len(Z))[:self.n]])
+                inds = np.random.permutation(len(Z))[:self.n]
+                logger.info("Fitting surrogate gradient model to %d/%d data." % (len(inds), len(Z)))
+                self.surrogate.fit(Z[inds])
                 logger.debug("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
