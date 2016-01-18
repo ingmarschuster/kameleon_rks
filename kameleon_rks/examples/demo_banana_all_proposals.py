@@ -34,12 +34,12 @@ def get_AdaptiveMetropolis_instance(D, target_log_pdf):
 
 def get_StaticKameleon_instance(D, target_log_pdf):
     
-    step_size = .01
+    step_size = 30.
     schedule = sqrt_schedule
     acc_star = 0.234
     gamma2 = 0.1
 
-    Z = sample_banana(N=300, D=D, bananicity=0.03, V=100)
+    Z = sample_banana(N=500, D=D, bananicity=0.03, V=100)
     
     kernel_sigma = 1./gamma_median_heuristic(Z)
     instance = StaticKameleon(D, target_log_pdf, kernel_sigma, step_size, gamma2, schedule, acc_star)
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     samplers = [
                 get_StaticMetropolis_instance(D, target_log_pdf),
                 get_AdaptiveMetropolis_instance(D, target_log_pdf),
-                get_StaticKameleon_instance(D, target_log_pdf), # not yet working
+                get_StaticKameleon_instance(D, target_log_pdf),
                 
                 ]
 

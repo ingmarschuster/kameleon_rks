@@ -43,6 +43,7 @@ class StaticKameleon(StaticMetropolis):
         proopsal_log_prob_inv = log_gaussian_pdf(current, proposal, L_R_inv, is_cholesky=True)
         
         log_acc_prob = proposal_log_pdf - current_log_pdf + proopsal_log_prob_inv - proposal_log_prob
+        log_acc_prob = np.min([0, log_acc_prob])
         
         results_kwargs = {}
         
