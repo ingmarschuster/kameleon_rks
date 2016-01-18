@@ -24,14 +24,14 @@ class StaticLangevin(StaticMetropolis):
         forward_grad = self.target_grad(current)
         
         # noise covariance square root with step size
-        L = np.sqrt(self.step_size)*self.L_C
+        L = np.sqrt(self.step_size) * self.L_C
         
-        forward_mu = current + L.dot(L.T.dot(forward_grad))
+        forward_mu = current + 0.5 * L.dot(L.T.dot(forward_grad))
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
         
         backward_grad = self.target_grad(proposal)
-        backward_mu = proposal + L.dot(L.T.dot(backward_grad))
+        backward_mu = proposal + 0.5 * L.dot(L.T.dot(backward_grad))
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
         
         proposal_log_pdf = self.target_log_pdf(proposal)
@@ -59,7 +59,7 @@ class AdaptiveLangevin(StaticLangevin):
 
     def set_batch(self, Z):
         self.mu = np.mean(Z, axis=0)
-        self.L_C = np.linalg.cholesky(self.setp_size * np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
+        self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
     
     def update(self, Z):
         if self.schedule is not None:
@@ -75,43 +75,41 @@ class AdaptiveLangevin(StaticLangevin):
                                                                                self.step_size,
                                                                                self.gamma2)
     
-class KernelStaticLangevin(StaticLangevin):
+class StaticKernelLangevin(StaticLangevin):
     """
     Implements gradient free kernel adaptive langevin proposal.
     
     Uses the kernel exponential family to estimate the gradient.
     """
     
-    def __init__(self, D, target_log_pdf, surrogate, step_size, gamma2, eps=1., schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, D, target_log_pdf, surrogate.target_grad, step_size, gamma2, eps, schedule, acc_star)
-        
-        self.surrogate = surrogate
-    
-    def set_batch_covarianc(self, Z):
-        StaticLangevin.set_batch(self, Z)
-        
-        # fit gradient estimator
-        self.surrogate.fit(Z)
-
-class KernelAdaptiveLangevin(KernelStaticLangevin):
-    """
-    Implements gradient free kernel adaptive langevin proposal.
-    
-    Uses the kernel exponential family to estimate the gradient.
-    """
-    
-    def __init__(self, target_log_pdf, surrogate, step_size, gamma2, eps=1., schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, target_log_pdf, surrogate.target_grad, step_size, gamma2, eps, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, surrogate, step_size , schedule=None, acc_star=None):
+        StaticLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, schedule, acc_star)
         
         self.surrogate = surrogate
     
     def set_batch(self, Z):
-        StaticLangevin.set_batch(self, Z)
-        
-        # fit gradient estimator
         self.surrogate.fit(Z)
-
+    
+class AdaptiveKernelLangevin(AdaptiveLangevin):
+    """
+    Implements gradient free kernel adaptive langevin proposal.
+    
+    Uses the kernel exponential family to estimate the gradient.
+    """
+    
+    def __init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule=None, acc_star=None):
+        AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, gamma2, schedule, acc_star)
+        
+        self.surrogate = surrogate
+        self.n = n
+    
+    def set_batch(self, Z):
+        AdaptiveLangevin.set_batch(self, Z)
+        self.surrogate.fit(Z)
+    
     def update(self, Z):
+        AdaptiveLangevin.update(self, Z)
+        
         if self.schedule is not None:
             # generate updating probability
             lmbda = self.schedule(self.t)
@@ -119,4 +117,4 @@ class KernelAdaptiveLangevin(KernelStaticLangevin):
             if np.random.rand() < lmbda:
                 # update sub-sample of chain history
                 self.set_batch(Z[np.random.permutation(len(Z))[:self.n]])
-                logger.info("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
+                logger.debug("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))

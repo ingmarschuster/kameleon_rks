@@ -3,10 +3,13 @@ from kameleon_rks.examples.plotting import visualise_trace
 from kameleon_rks.mcmc.mini_mcmc import mini_mcmc
 from kameleon_rks.proposals.Kameleon import StaticKameleon, AdaptiveKameleon,\
     gamma_median_heuristic
-from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin
+from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin,\
+    StaticKernelLangevin, AdaptiveKernelLangevin
 from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
     AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
+from kernel_exp_family.estimators.lite.gaussian import KernelExpLiteGaussian,\
+    KernelExpLiteGaussianAdaptive
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -84,8 +87,37 @@ def get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad):
     
     return instance
 
+def get_StaticKernelLangevin_instance(D, target_log_pdf, target_grad):
+    
+    step_size = 1.
+    schedule = one_over_sqrt_t_schedule
+    acc_star = 0.234
+    N=500
+    Z = sample_banana(N=N, D=D, bananicity=0.03, V=100)
+    
+    surrogate = KernelExpLiteGaussianAdaptive(sigma=1, lmbda=0.001, D=D, N=N)
+    surrogate.fit(Z)
+    
+    instance = StaticKernelLangevin(D, target_log_pdf, surrogate, step_size, schedule, acc_star)
+    
+    return instance
+
+def get_AdaptiveKernelLangevin_instance(D, target_log_pdf, target_grad):
+    
+    step_size = 1.
+    schedule = one_over_sqrt_t_schedule
+    acc_star = 0.234
+    gamma2 = 0.1
+    n=500
+    
+    surrogate = KernelExpLiteGaussian(sigma=1, lmbda=0.001, D=D, N=n)
+    
+    instance = AdaptiveKernelLangevin(D, target_log_pdf, n, surrogate, step_size, gamma2, schedule, acc_star)
+    
+    return instance
+
 if __name__ == '__main__':
-    Log.set_loglevel(20)
+    Log.set_loglevel(10)
     D = 2
     
     bananicity = 0.03
@@ -100,6 +132,10 @@ if __name__ == '__main__':
                 get_AdaptiveKameleon_instance(D, target_log_pdf),
                 get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                get_StaticKernelLangevin_instance(D, target_log_pdf, target_grad),
+                get_StaticKernelLangevin_instance(D, target_log_pdf, target_grad),
+                get_AdaptiveKernelLangevin_instance(D, target_log_pdf, target_grad),
+                
                 ]
 
     for sampler in samplers:
