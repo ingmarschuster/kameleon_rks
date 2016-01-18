@@ -100,10 +100,6 @@ if __name__ == '__main__':
                 get_AdaptiveKameleon_instance(D, target_log_pdf),
                 get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-                
-                
-                
-                
                 ]
 
     for sampler in samplers:
