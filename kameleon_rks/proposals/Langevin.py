@@ -8,41 +8,54 @@ import numpy as np
 logger = Log.get_logger()
 
 class StaticLangevin(StaticMetropolis):
-    def __init__(self, D, target_log_pdf, target_log_grad, step_size, gamma2, eps=1., schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, target_grad, step_size, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
-        self.eps = eps
-        self.target_log_grad = target_log_grad
+        self.target_grad = target_grad
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
         # potentially save computation via re-using gradient
-        if 'previous_backward_grad' in kwargs:
-            forward_grad = kwargs['previous_backward_grad']
-        else:
-            forward_grad = self.target_log_grad(current)
-            
-        forward_mu = current + self.L_C.dot(self.L_C.T).dot(self.eps * forward_grad)
-        proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=self.L_C, is_cholesky=True)[0]
-        forward_log_prob = log_gaussian_pdf(proposal, forward_mu, self.L_C, is_cholesky=True)
+#         if 'previous_backward_grad' in kwargs:
+#             forward_grad = kwargs['previous_backward_grad']
+#         else:
+        forward_grad = self.target_grad(current)
         
-        backward_grad = self.target_log_grad(proposal)
-        backward_mu = proposal + self.L_C.dot(self.L_C.T).dot(self.eps * backward_grad)
-        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C, is_cholesky=True)
+        # noise covariance square root with step size
+        L = np.sqrt(self.step_size)*self.L_C
+        
+        forward_mu = current + L.dot(L.T.dot(forward_grad))
+        proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
+        forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
+        
+        backward_grad = self.target_grad(proposal)
+        backward_mu = proposal + L.dot(L.T.dot(backward_grad))
+        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
         
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         log_acc_prob = proposal_log_pdf - current_log_pdf + backward_log_prob - forward_log_prob
+        log_acc_prob = np.min([0, log_acc_prob])
         
         result_kwargs = {'previous_backward_grad': backward_grad}
         
         return proposal, np.exp(log_acc_prob), proposal_log_pdf, result_kwargs
 
 class AdaptiveLangevin(StaticLangevin):
-    def __init__(self, D, target_log_pdf, grad, step_size, gamma2, eps=1., schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, D, target_log_pdf, grad, step_size, gamma2, eps, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, target_grad, step_size, gamma2, schedule=None, acc_star=None):
+        StaticLangevin.__init__(self, D, target_log_pdf, target_grad, step_size, schedule, acc_star)
+
+        self.gamma2 = gamma2
+
+        if self.schedule is not None:
+            # start from scratch
+            self.mu = np.zeros(self.D)
+        else:
+            # make user call the set_batch function
+            self.mu = None
+            self.L_C = None
 
     def set_batch(self, Z):
         self.mu = np.mean(Z, axis=0)
@@ -70,7 +83,7 @@ class KernelStaticLangevin(StaticLangevin):
     """
     
     def __init__(self, D, target_log_pdf, surrogate, step_size, gamma2, eps=1., schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, D, target_log_pdf, surrogate.target_log_grad, step_size, gamma2, eps, schedule, acc_star)
+        StaticLangevin.__init__(self, D, target_log_pdf, surrogate.target_grad, step_size, gamma2, eps, schedule, acc_star)
         
         self.surrogate = surrogate
     
@@ -88,7 +101,7 @@ class KernelAdaptiveLangevin(KernelStaticLangevin):
     """
     
     def __init__(self, target_log_pdf, surrogate, step_size, gamma2, eps=1., schedule=None, acc_star=None):
-        StaticLangevin.__init__(self, target_log_pdf, surrogate.target_log_grad, step_size, gamma2, eps, schedule, acc_star)
+        StaticLangevin.__init__(self, target_log_pdf, surrogate.target_grad, step_size, gamma2, eps, schedule, acc_star)
         
         self.surrogate = surrogate
     
