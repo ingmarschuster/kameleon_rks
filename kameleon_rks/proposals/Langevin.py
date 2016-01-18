@@ -2,7 +2,7 @@ from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.tools.log import Log
 from kameleon_rks.tools.running_averages import rank_one_update_mean_covariance_cholesky_lmbda
-from kernel_exp_family.examples.tools import visualise_fit
+
 import numpy as np
 
 
@@ -37,12 +37,11 @@ class StaticLangevin(StaticMetropolis):
         
         proposal_log_pdf = self.target_log_pdf(proposal)
         
-        log_acc_prob = proposal_log_pdf - current_log_pdf + backward_log_prob - forward_log_prob
-        log_acc_prob = np.min([0, log_acc_prob])
+        
         
         result_kwargs = {'previous_backward_grad': backward_grad}
         
-        return proposal, np.exp(log_acc_prob), proposal_log_pdf, result_kwargs
+        return proposal, proposal_log_pdf, current_log_pdf, forward_log_prob, backward_log_prob, result_kwargs
 
 class AdaptiveLangevin(StaticLangevin):
     def __init__(self, D, target_log_pdf, grad, step_size, gamma2, schedule=None, acc_star=None):

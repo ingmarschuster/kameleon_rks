@@ -69,7 +69,7 @@ class OracleKameleon(StaticMetropolis):
         
         results_kwargs = {}
         
-        return proposal, np.exp(log_acc_prob), proposal_log_pdf, results_kwargs
+        return proposal, proposal_log_pdf, current_log_pdf, proposal_log_prob, proopsal_log_prob_inv, results_kwargs
     
     def _construct_proposal_covariance(self, y):
         """

@@ -1,5 +1,5 @@
 from kameleon_rks.proposals.ProposalBase import ProposalBase
-from kameleon_rks.densities.gaussian import sample_gaussian
+from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.tools.running_averages import rank_one_update_mean_covariance_cholesky_lmbda
 import numpy as np
 
@@ -18,15 +18,15 @@ class StaticMetropolis(ProposalBase):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C * np.sqrt(self.step_size), is_cholesky=True)[0]
+        Sigma = self.L_C * np.sqrt(self.step_size)
+        proposal = sample_gaussian(N=1, mu=current, Sigma=Sigma, is_cholesky=True)[0]
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=Sigma, is_cholesky=True)
         proposal_log_pdf = self.target_log_pdf(proposal)
         
-        # probability of proposing current when would be sitting at proposal is symmetric
-        acc_log_prob = np.min([0, proposal_log_pdf - current_log_pdf])
-
         results_kwargs = {}
         
-        return proposal, np.exp(acc_log_prob), proposal_log_pdf, results_kwargs
+        # probability of proposing current when would be sitting at proposal is symmetric
+        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
 
 class AdaptiveMetropolis(StaticMetropolis):
     """

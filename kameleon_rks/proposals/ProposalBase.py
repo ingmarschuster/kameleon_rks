@@ -23,6 +23,10 @@ class ProposalBase():
     def set_batch(self, Z):
         pass
     
+    def mh(self, backward_log_pdf, forward_log_pdf, backward_log_prob, forward_log_prob):
+        log_acc_prob = forward_log_pdf - backward_log_pdf + backward_log_prob - forward_log_prob
+        return np.exp(np.min([0, log_acc_prob]))
+    
     def update_step_size(self, previous_accept_probs):
         if self.schedule is not None and self.acc_star is not None:
             old_step_size = self.step_size
@@ -43,5 +47,5 @@ class ProposalBase():
     def update(self, Z):
         pass
     
-    def proposal(self, current, **kwargs):
+    def proposal(self, current, current_log_pdf,  **kwargs):
         pass

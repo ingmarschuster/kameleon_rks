@@ -53,7 +53,9 @@ def mini_mcmc(transition_kernel, start, num_iter, D, recompute_log_pdf=False, ti
         
         # generate proposal and acceptance probability
         logger.debug("Performing MCMC step %d" % it)
-        proposals[it], acc_prob[it], log_pdf_proposal, current_kwargs = transition_kernel.proposal(current, current_log_pdf, **current_kwargs)
+        proposals[it], prop_target_log_pdf, current_log_pdf, forw_log_pdf, backw_logpdf, current_kwargs = transition_kernel.proposal(current, current_log_pdf, **current_kwargs)
+        
+        acc_prob[it] = transition_kernel.mh(current_log_pdf, prop_target_log_pdf, backw_logpdf, forw_log_pdf)
         
         # accept-reject
         r = np.random.rand()
@@ -71,7 +73,7 @@ def mini_mcmc(transition_kernel, start, num_iter, D, recompute_log_pdf=False, ti
         logger.debug("Updating chain")
         if accepted[it]:
             current = proposals[it]
-            current_log_pdf = log_pdf_proposal
+            current_log_pdf = prop_target_log_pdf
 
         # store sample
         samples[it] = current
