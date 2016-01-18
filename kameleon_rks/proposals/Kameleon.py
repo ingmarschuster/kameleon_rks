@@ -1,33 +1,55 @@
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import cdist, squareform, pdist
 
-from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
-from old.gaussian_rks import gamma_median_heuristic
+from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.tools.log import Log
 import numpy as np
+from old.gaussian_rks import gamma_median_heuristic
 
 
 logger = Log.get_logger()
 
+def gamma_median_heuristic(Z, num_subsample=1000):
+    """
+    Computes the median pairwise distance in a random sub-sample of Z.
+    Returns a \gamma for k(x,y)=\exp(-\gamma ||x-y||^2), according to the median heuristc,
+    i.e. it corresponds to \sigma in k(x,y)=\exp(-0.5*||x-y||^2 / \sigma^2) where
+    \sigma is the median distance. \gamma = 0.5/(\sigma^2)
+    """
+    inds = np.random.permutation(len(Z))[:np.max([num_subsample, len(Z)])]
+    dists = squareform(pdist(Z[inds], 'sqeuclidean'))
+    median_dist = np.median(dists[dists > 0])
+    sigma = np.sqrt(0.5 * median_dist)
+    gamma = 0.5 / (sigma ** 2)
+    
+    return gamma
+
 class StaticKameleon(StaticMetropolis):
     """
-    Implements a static version of Kameleon MCMC.
+    Implements a static version of AdaptiveKameleon MCMC.
     """
     
-    def __init__(self, D, target_log_pdf, kernel_sigma, step_size, gamma2=0.1, schedule=None, acc_star=0.234):
+    def __init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2=0.1, schedule=None, acc_star=0.234):
         
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
+        self.n = n
         self.kernel_sigma = kernel_sigma
         self.gamma2 = gamma2
         
-        self.Z = None
+        self.Z = np.zeros((0, D))
         
     def set_batch(self, Z):
+        if self.n is not None:
+            if len(Z) > self.n:
+                inds = np.random.permutation(len(Z))[:self.n]
+                self.Z = Z[inds]
+                return
+        
         self.Z = Z
     
     def proposal(self, current, current_log_pdf, **kwargs):
-        if self.Z is None:
+        if self.Z is None and self.schedule is None:
             raise ValueError("%s has not seen data yet. Call set_batch()" % self.__class__.__name__)
         
         if current_log_pdf is None:
@@ -51,7 +73,7 @@ class StaticKameleon(StaticMetropolis):
     
     def _construct_proposal_covariance(self, y):
         """
-        Helper method to compute Cholesky factor of the Gaussian Kameleon proposal centred at y.
+        Helper method to compute Cholesky factor of the Gaussian AdaptiveKameleon proposal centred at y.
         """
         R = self.gamma2 * np.eye(self.D)
         
@@ -69,7 +91,7 @@ class StaticKameleon(StaticMetropolis):
             neg_differences = self.Z - y
             G = 2 * kernel_gamma * (k.T * neg_differences)
             
-            # Kameleon
+            # AdaptiveKameleon
             G *= 2  # = M
             # R = gamma^2 I + \eta^2 * M H M^T
             H = np.eye(len(self.Z)) - 1.0 / len(self.Z)
@@ -79,26 +101,20 @@ class StaticKameleon(StaticMetropolis):
         
         return L_R
     
-class Kameleon(StaticKameleon):
+class AdaptiveKameleon(StaticKameleon):
     """
     Implements kernel adaptive StaticMetropolis Hastings.
     """
     
     def __init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2=0.1, schedule=None, acc_star=0.234):
         
-        StaticKameleon.__init__(self, D, target_log_pdf, kernel_sigma, step_size, gamma2, schedule, acc_star)
-        
-        self.n = n
-    
-    def set_batch(self, Z):
-        StaticKameleon.set_batch(self, Z)
-        self._update_kernel_sigma()
+        StaticKameleon.__init__(self, D, target_log_pdf, n, kernel_sigma, step_size, gamma2, schedule, acc_star)
     
     def _update_kernel_sigma(self):
-        if self.minimum_size_sigma_learning < len(self.Z):
+        # avoid linalg errors from proposal covariance being rank defficient
+        if len(self.Z) >= self.n:
             # re-compute median heuristic for kernel
-            self.kernel_sigma = 1./gamma_median_heuristic(self.Z, self.n)
-            logger.info("Re-computed kernel bandwith using median heuristic to sigma=%.3f" % self.kernel_sigma)
+            self.kernel_sigma = 1./gamma_median_heuristic(self.Z)
 
     def update(self, Z):
         if self.schedule is not None:
@@ -107,5 +123,8 @@ class Kameleon(StaticKameleon):
             
             if np.random.rand() < lmbda:
                 # update sub-sample of chain history
-                self.set_batch(Z[np.random.permutation(len(Z))[:self.n]])
-                logger.info("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
+                StaticKameleon.set_batch(self, Z)
+                logger.debug("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
+                
+                self._update_kernel_sigma()
+                logger.debug("Re-computed kernel bandwith using median heuristic to sigma=%.3f" % self.kernel_sigma)

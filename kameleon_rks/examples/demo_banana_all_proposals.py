@@ -1,22 +1,22 @@
 from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
 from kameleon_rks.examples.plotting import visualise_trace
 from kameleon_rks.mcmc.mini_mcmc import mini_mcmc
-from kameleon_rks.proposals.Kameleon import StaticKameleon
-from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
+from kameleon_rks.proposals.Kameleon import StaticKameleon, AdaptiveKameleon,\
+    gamma_median_heuristic
+from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
     AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
 import matplotlib.pyplot as plt
 import numpy as np
-from old.gaussian_rks import gamma_median_heuristic
 
 
-def sqrt_schedule(t):
-    return 1 / np.sqrt(1 + t)
+def one_over_sqrt_t_schedule(t):
+    return 1. / np.sqrt(1 + t)
 
 def get_StaticMetropolis_instance(D, target_log_pdf):
     
     step_size = 8.
-    schedule = sqrt_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     instance = StaticMetropolis(D, target_log_pdf, step_size, schedule, acc_star)
     
@@ -25,7 +25,7 @@ def get_StaticMetropolis_instance(D, target_log_pdf):
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
     step_size = 8.
-    schedule = sqrt_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
     instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule, acc_star)
@@ -35,17 +35,33 @@ def get_AdaptiveMetropolis_instance(D, target_log_pdf):
 def get_StaticKameleon_instance(D, target_log_pdf):
     
     step_size = 30.
-    schedule = sqrt_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
-
-    Z = sample_banana(N=500, D=D, bananicity=0.03, V=100)
+    n = 500
     
-    kernel_sigma = 1./gamma_median_heuristic(Z)
-    instance = StaticKameleon(D, target_log_pdf, kernel_sigma, step_size, gamma2, schedule, acc_star)
+    Z = sample_banana(N=n, D=D, bananicity=0.03, V=100)
+    
+    kernel_sigma = 1. / gamma_median_heuristic(Z)
+    instance = StaticKameleon(D, target_log_pdf, n, kernel_sigma, step_size, gamma2, schedule, acc_star)
     instance.set_batch(Z)
     
     return instance
+
+def get_AdaptiveKameleon_instance(D, target_log_pdf):
+    
+    step_size = 1.
+    schedule = one_over_sqrt_t_schedule
+    acc_star = 0.234
+    gamma2 = 0.1
+    
+    kernel_sigma = 1.
+    n = 500
+
+    instance = AdaptiveKameleon(D, target_log_pdf, n, kernel_sigma, step_size, gamma2, schedule, acc_star)
+    
+    return instance
+
 
 if __name__ == '__main__':
     Log.set_loglevel(20)
@@ -56,9 +72,11 @@ if __name__ == '__main__':
     target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
 
     samplers = [
-                get_StaticMetropolis_instance(D, target_log_pdf),
-                get_AdaptiveMetropolis_instance(D, target_log_pdf),
-                get_StaticKameleon_instance(D, target_log_pdf),
+#                 get_StaticMetropolis_instance(D, target_log_pdf),
+#                 get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                 get_StaticKameleon_instance(D, target_log_pdf),
+                get_AdaptiveKameleon_instance(D, target_log_pdf),
+                
                 
                 ]
 

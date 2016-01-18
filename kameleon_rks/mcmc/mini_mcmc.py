@@ -52,7 +52,7 @@ def mini_mcmc(transition_kernel, start, num_iter, D, recompute_log_pdf=False, ti
             current_log_pdf = None
         
         # generate proposal and acceptance probability
-        logger.debug("Performing MCMC step")
+        logger.debug("Performing MCMC step %d" % it)
         proposals[it], acc_prob[it], log_pdf_proposal, current_kwargs = transition_kernel.proposal(current, current_log_pdf, **current_kwargs)
         
         # accept-reject
