@@ -167,3 +167,4 @@ def visualise_trace(samples, log_pdf_trajectory, accepted, step_sizes=None, log_
             
         plt.xlabel("MCMC iterations")
         plt.grid(True)
+    plt.tight_layout()
