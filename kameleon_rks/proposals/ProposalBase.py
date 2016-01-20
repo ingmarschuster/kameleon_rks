@@ -4,12 +4,13 @@ import numpy as np
 logger = Log.get_logger()
 
 class ProposalBase():
-    def __init__(self, D, target_log_pdf, step_size, schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, step_size, schedule=None, acc_star=None, fixed_step_size=False):
         self.target_log_pdf = target_log_pdf
         self.D = D
         self.step_size = step_size
         self.schedule = schedule
         self.acc_star = acc_star
+        self.fixed_step_size = fixed_step_size
         
         # some sanity checks
         assert acc_star is None or acc_star > 0 and acc_star < 1
@@ -28,7 +29,7 @@ class ProposalBase():
         return np.exp(np.min([0, log_acc_prob]))
     
     def update_step_size(self, previous_accept_probs):
-        if self.schedule is not None and self.acc_star is not None:
+        if self.schedule is not None and self.acc_star is not None and not self.fixed_step_size:
             old_step_size = self.step_size
             # generate updating weight
             lmbda = self.schedule(self.t)

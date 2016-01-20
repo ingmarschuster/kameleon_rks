@@ -130,7 +130,7 @@ def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     return instance
 
 if __name__ == '__main__':
-    Log.set_loglevel(10)
+    Log.set_loglevel(20)
     D = 2
     
     bananicity = 0.03
@@ -149,19 +149,21 @@ if __name__ == '__main__':
                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                 ]
+    
     # SMC sampler
     for sampler in samplers:
         start = np.zeros(D)
         
+        num_population = 100
+        num_samples = num_population
         bridge_start = mvnorm(np.zeros(D), np.eye(D) * np.sqrt(2.8 / D))
-        samples, log_target_densities, ess , evid = mini_smc(500,
-                                                              500,
+        samples, log_target_densities, step_sizes, evid = mini_smc(num_samples,
+                                                                   num_population,
                                                               bridge_start,
                                                               target_log_pdf,
-                                                              sampler, ess=True)
+                                                              sampler)
                     
-        visualize_scatter(samples)
-        plt.suptitle("%s, ESS: %.2f" % \
-                     (sampler.__class__.__name__, ess))
+        visualize_scatter(samples, step_sizes)
+        plt.suptitle("%s" % (sampler.__class__.__name__))
     plt.show()
 

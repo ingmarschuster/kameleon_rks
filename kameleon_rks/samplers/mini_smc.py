@@ -55,9 +55,8 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
         
     log_target = lambda x: np.apply_along_axis(lambda y: np.atleast_1d(log_targ(y)), 1, x)
 
-    
+    step_sizes = []
 
-    
     initial_guesses = prior.rvs(population_size)
     
     population_size = initial_guesses.shape[0]
@@ -182,7 +181,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
         for i in range(max_eval + 1):
             mid = low + (high - low) / 2
             (inc_w, EF) = incr_weight(idx_beg, idx_end, br_old, mid, True)
-            logger.debug(EF)
+            logger.debug("EF: %.4f" % EF)
             d = EF - target_ef_fact
             if i == max_eval or np.abs(EF - old_EF) < eps:
                 return (mid, inc_w)
@@ -220,6 +219,8 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
     j = 1
     
     while True:
+        step_sizes += [proposal_obj.step_size]
+        
         idx_beg = (j - 1) * population_size
         idx_mid = idx_beg + population_size
         idx_end = idx_mid + population_size
@@ -279,7 +280,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
             (rval_acr, lpost_acr) = (rval[smp_idx_acr], lpost[smp_idx_acr])
         (rval, lpost) = (np.r_[rval[smp_idx], rval[idx_mid:idx_end]], np.r_[lpost[smp_idx], lpost[idx_mid:idx_end]])
 
-    all_rval = [rval, lpost]  
+    all_rval = [rval, lpost, np.array(step_sizes)]
     if ess:
         all_rval.append(ESS)
     if across:
