@@ -2,17 +2,17 @@ from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.Metropolis import StaticMetropolis
 from kameleon_rks.tools.log import Log
 from kameleon_rks.tools.running_averages import rank_one_update_mean_covariance_cholesky_lmbda
-
 import numpy as np
 
 
 logger = Log.get_logger()
 
 class StaticLangevin(StaticMetropolis):
-    def __init__(self, D, target_log_pdf, grad, step_size, schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, grad, step_size, eps=None, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
         self.grad = grad
+        self.eps = eps
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
@@ -24,15 +24,17 @@ class StaticLangevin(StaticMetropolis):
 #         else:
         forward_grad = self.grad(current)
         
+        gradient_step_size = self.eps if self.eps is not None else self.step_size
+        
         # noise covariance square root with step size
         L = np.sqrt(self.step_size) * self.L_C
         
-        forward_mu = current + 0.5 * L.dot(L.T.dot(forward_grad))
+        forward_mu = current + 0.5 * gradient_step_size * self.L.dot(self.L.T.dot(forward_grad))
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
         
         backward_grad = self.grad(proposal)
-        backward_mu = proposal + 0.5 * L.dot(L.T.dot(backward_grad))
+        backward_mu = proposal + 0.5 * gradient_step_size * self.L.dot(self.L.T.dot(backward_grad))
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
         
         proposal_log_pdf = self.target_log_pdf(proposal)
@@ -63,7 +65,7 @@ class AdaptiveLangevin(StaticLangevin):
             self.mu = np.mean(Z, axis=0)
             self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
     
-    def update(self, Z, num_new = 1):
+    def update(self, Z, num_new=1):
         if self.schedule is not None:
             # generate updating weight
             lmbda = self.schedule(self.t)
@@ -112,7 +114,7 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
         self.surrogate = surrogate
         self.n = n
     
-    def update(self, Z, num_new = 1):
+    def update(self, Z, num_new=1):
         OracleKernelAdaptiveLangevin.update(self, Z, num_new)
         
         if self.schedule is not None and len(Z) >= self.n:
