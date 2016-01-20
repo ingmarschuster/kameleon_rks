@@ -8,11 +8,11 @@ import numpy as np
 logger = Log.get_logger()
 
 class StaticLangevin(StaticMetropolis):
-    def __init__(self, D, target_log_pdf, grad, step_size, eps=None, schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, grad, step_size, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
         self.grad = grad
-        self.eps = eps
+        self.manual_gradient_step_size = None
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
@@ -24,7 +24,7 @@ class StaticLangevin(StaticMetropolis):
 #         else:
         forward_grad = self.grad(current)
         
-        gradient_step_size = self.eps if self.eps is not None else self.step_size
+        gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
         # noise covariance square root with step size
         L = np.sqrt(self.step_size) * self.L_C
