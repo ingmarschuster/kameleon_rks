@@ -29,12 +29,12 @@ class StaticLangevin(StaticMetropolis):
         # noise covariance square root with step size
         L = np.sqrt(self.step_size) * self.L_C
         
-        forward_mu = current + 0.5 * gradient_step_size * self.L.dot(self.L.T.dot(forward_grad))
+        forward_mu = current + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
         
         backward_grad = self.grad(proposal)
-        backward_mu = proposal + 0.5 * gradient_step_size * self.L.dot(self.L.T.dot(backward_grad))
+        backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
         
         proposal_log_pdf = self.target_log_pdf(proposal)
