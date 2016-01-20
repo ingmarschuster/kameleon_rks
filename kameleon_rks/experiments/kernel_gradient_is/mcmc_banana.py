@@ -4,6 +4,8 @@ from kameleon_rks.proposals.Langevin import AdaptiveLangevin, \
     OracleKernelAdaptiveLangevin, KernelAdaptiveLangevin
 from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis
 from kameleon_rks.samplers.mini_mcmc import mini_mcmc
+from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample,\
+    min_ess
 from kameleon_rks.tools.log import Log
 from kernel_exp_family.estimators.lite.gaussian import KernelExpLiteGaussian
 import matplotlib.pyplot as plt
@@ -31,7 +33,8 @@ def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
     gamma2 = 0.1
     
     instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, gamma2, schedule, acc_star)
-    instance.fixed_step_size = True
+    
+#     instance.manual_gradient_step_size = 1.
     
     return instance
 
@@ -48,7 +51,9 @@ def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     surrogate.fit(Z)
     
     instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, gamma2, schedule, acc_star)
+    
     instance.fixed_step_size = True
+    instance.manual_gradient_step_size = 1.
     
     return instance
 
@@ -61,8 +66,9 @@ def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     
     surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=n)
     instance = KernelAdaptiveLangevin(D, target_log_pdf, n, surrogate, step_size, gamma2, schedule, acc_star)
-    instance.fixed_step_size = True
     
+    instance.fixed_step_size = True
+    instance.manual_gradient_step_size = 1.
     
     return instance
 
@@ -72,6 +78,7 @@ if __name__ == '__main__':
     
     bananicity = 0.03
     V = 100
+    benchmark_sample = sample_banana(5000, D, bananicity, V)
     
     target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
     grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
@@ -79,8 +86,8 @@ if __name__ == '__main__':
     samplers = [
                 get_AdaptiveMetropolis_instance(D, target_log_pdf),
                 get_AdaptiveLangevin_instance(D, target_log_pdf, grad),
-                get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
-                get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
+#                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
+#                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
                 ]
     for sampler in samplers:
         start = np.zeros(D)
@@ -92,5 +99,15 @@ if __name__ == '__main__':
         plt.suptitle("%s, acceptance rate: %.2f" % \
                      (sampler.__class__.__name__, np.mean(accepted)))
         
-    plt.show()
+        thinning_factor = 1
+        thinning_inds = np.arange(len(samples)/2)
+        thinning_inds += len(thinning_inds)
+        thinning_inds = thinning_inds[np.arange(0,len(thinning_inds),step=thinning_factor)]
+        thinned = samples[thinning_inds]
+        
+        print "MMD", mmd_to_benchmark_sample(thinned, benchmark_sample, degree=3)
+        print "ESS", min_ess(thinned) 
+        
+    if False or True:
+        plt.show()
 
