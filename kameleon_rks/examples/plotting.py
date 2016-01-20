@@ -95,21 +95,29 @@ def visualise_trajectory(Qs, acc_probs, log_pdf_q, D, log_pdf=None, Z=None, log_
     plt.plot(log_pdf_q)
     plt.xlim([0, len(log_pdf_q)])
 
-def visualize_scatter(samples, step_sizes=None):
+def visualize_scatter(samples, step_sizes=None, acceptance_rates=None):
     assert samples.ndim == 2
     
     plt.figure()
-    plt.subplot(121, aspect='equal')
+    plt.subplot(221, aspect='equal')
     plt.plot(samples[:, 0], samples[:, 1], 'bx')
     plt.grid(True)
     plt.title("Samples")
     
     if step_sizes is not None:
-        plt.subplot(122)
+        plt.subplot(223)
         plt.title("Step sizes")
         plt.plot(step_sizes)
         plt.grid(True)
         plt.xlabel("Update iteration")
+    
+    if acceptance_rates is not None:
+        plt.subplot(224)
+        plt.title("Acceptanc rates")
+        plt.plot(acceptance_rates)
+        plt.grid(True)
+        plt.xlabel("Update iteration")
+    
 
 def visualise_trace(samples, log_pdf_trajectory, accepted, step_sizes=None, log_pdf_density=None, idx0=0, idx1=1):
     assert samples.ndim == 2

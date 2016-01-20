@@ -157,13 +157,13 @@ if __name__ == '__main__':
         num_population = 100
         num_samples = num_population
         bridge_start = mvnorm(np.zeros(D), np.eye(D) * np.sqrt(2.8 / D))
-        samples, log_target_densities, step_sizes, evid = mini_smc(num_samples,
-                                                                   num_population,
-                                                              bridge_start,
-                                                              target_log_pdf,
-                                                              sampler)
+        samples, log_target_densities, step_sizes, acceptance_rates, evid = mini_smc(num_samples,
+                                                                                      num_population,
+                                                                                      bridge_start,
+                                                                                      target_log_pdf,
+                                                                                      sampler)
                     
-        visualize_scatter(samples, step_sizes)
+        visualize_scatter(samples, step_sizes, acceptance_rates)
         plt.suptitle("%s" % (sampler.__class__.__name__))
     plt.show()
 

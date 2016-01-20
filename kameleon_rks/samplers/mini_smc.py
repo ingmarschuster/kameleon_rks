@@ -55,7 +55,9 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
         
     log_target = lambda x: np.apply_along_axis(lambda y: np.atleast_1d(log_targ(y)), 1, x)
 
+    # will be returned
     step_sizes = []
+    acceptance_rates = []
 
     initial_guesses = prior.rvs(population_size)
     
@@ -207,6 +209,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
         # pre = (rval[mid:end].copy(),  lprior[mid:end].copy(), lpost[mid:end].copy())
         acc = mcmc_rejuvenate(rval[mid:end], lprior[mid:end], lpost[mid:end], br_new)
         mean_acc = np.mean(acc)
+        acceptance_rates.append(mean_acc)
         
         proposal_obj.next_iteration()
         proposal_obj.update_step_size([mean_acc])
@@ -280,7 +283,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
             (rval_acr, lpost_acr) = (rval[smp_idx_acr], lpost[smp_idx_acr])
         (rval, lpost) = (np.r_[rval[smp_idx], rval[idx_mid:idx_end]], np.r_[lpost[smp_idx], lpost[idx_mid:idx_end]])
 
-    all_rval = [rval, lpost, np.array(step_sizes)]
+    all_rval = [rval, lpost, np.array(step_sizes), np.array(acceptance_rates)]
     if ess:
         all_rval.append(ESS)
     if across:
