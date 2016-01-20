@@ -209,10 +209,8 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
         acc = mcmc_rejuvenate(rval[mid:end], lprior[mid:end], lpost[mid:end], br_new)
         mean_acc = np.mean(acc)
         
-        # adapt scaling if a schedule is set in the proposal object
-        if proposal_obj.schedule is not None:
-            proposal_obj.next_iteration()
-            proposal_obj.update_step_size([mean_acc])
+        proposal_obj.next_iteration()
+        proposal_obj.update_step_size([mean_acc])
         return (br_new, inc_w, mean_acc)
         
     br = [0.0]
