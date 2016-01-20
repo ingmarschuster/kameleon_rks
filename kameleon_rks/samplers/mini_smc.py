@@ -56,7 +56,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
     log_target = lambda x: np.apply_along_axis(lambda y: np.atleast_1d(log_targ(y)), 1, x)
 
     # will be returned
-    step_sizes = []
+    step_sizes = [proposal_obj.step_size]
     acceptance_rates = []
 
     initial_guesses = prior.rvs(population_size)
