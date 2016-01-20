@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 ]
     
     for sampler in samplers:
-        bridge_start = mvnorm(np.zeros(D), np.eye(D) * np.sqrt(2.8 / D))
+        bridge_start = mvnorm(np.zeros(D), np.eye(D) * 10)
         
         num_population = 1000
         num_samples = num_population
