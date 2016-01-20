@@ -96,8 +96,11 @@ def visualise_trajectory(Qs, acc_probs, log_pdf_q, D, log_pdf=None, Z=None, log_
     plt.xlim([0, len(log_pdf_q)])
 
 def visualize_scatter(samples):
+    assert samples.ndim == 2
+    
     plt.figure()
-    plt.scatter(samples.T[0], samples.T[1])
+    plt.plot(samples[:,0], samples[:,1], 'bx')
+    plt.grid(True)
 
 def visualise_trace(samples, log_pdf_trajectory, accepted, step_sizes=None, log_pdf_density=None, idx0=0, idx1=1):
     assert samples.ndim == 2

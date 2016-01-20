@@ -1,6 +1,6 @@
 from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
 from kameleon_rks.examples.plotting import visualise_trace
-from kameleon_rks.mcmc.mini_mcmc import mini_mcmc
+from kameleon_rks.samplers.mini_mcmc import mini_mcmc
 from kameleon_rks.proposals.Kameleon import OracleKameleon, Kameleon, \
     gamma_median_heuristic
 from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin, \
@@ -9,7 +9,6 @@ from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
     AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
 from kernel_exp_family.estimators.lite.gaussian import KernelExpLiteGaussian
-from kameleon_mcmc.kernel.PolynomialKernel import PolynomialKernel
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -121,7 +120,6 @@ if __name__ == '__main__':
     
     bananicity = 0.03
     V = 100
-    Z = sample_banana(N=700, D=D, bananicity=0.03, V=100)
     
     target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
     grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
@@ -135,20 +133,15 @@ if __name__ == '__main__':
                 get_AdaptiveLangevin_instance(D, target_log_pdf, grad),
                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad),
-                
                 ]
-    kern = PolynomialKernel(3)
     for sampler in samplers:
-        # MCMC parameters, feel free to increase number of iterations
         start = np.zeros(D)
         num_iter = 1000
         
         # run MCMC
         samples, proposals, accepted, acc_prob, log_pdf, times, step_sizes = mini_mcmc(sampler, start, num_iter, D)
-        mmd = kern.estimateMMD(Z,samples)
-        Log.get_logger().info('MMD %.2f'%mmd)
         visualise_trace(samples, log_pdf, accepted, step_sizes)
-        plt.suptitle("%s, acceptance rate: %.2f, MMD: %.2f" % \
-                     (sampler.__class__.__name__, np.mean(accepted), mmd))
+        plt.suptitle("%s, acceptance rate: %.2f" % \
+                     (sampler.__class__.__name__, np.mean(accepted)))
         
     plt.show()
