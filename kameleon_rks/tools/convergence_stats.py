@@ -2,6 +2,7 @@ from rpy2 import robjects
 
 import numpy as np
 
+
 def avg_ess(X):
     return np.mean(ess_coda(X))
 
@@ -19,7 +20,7 @@ def ess_coda(X):
         D = np.shape(X)[1]
         ESS = np.zeros(D)
         for d in range(D):
-            data = X[:,d]
+            data = X[:, d]
             r_ess = robjects.r['effectiveSize']
             data = robjects.r.matrix(robjects.FloatVector(data), nrow=len(data))
             ESS[d] = r_ess(data)[0]
@@ -122,3 +123,24 @@ def gelman_rubin(x):
     R = V / W
 
     return R
+
+def poly_kernel(X, Y, degree):
+    """
+    Computes the polynomial kernel k(x,y)=(1+theta*<x,y>)^degree for the given data
+    X - samples on right hand side
+    Y - samples on left hand side, can be None in which case its replaced by X
+    """
+    if Y is None:
+        Y = X
+    
+    theta = 0.2
+    return pow(theta + X.dot(Y.T), degree)
+
+def mmd_to_benchmark_sample(sample1, sample2, degree):
+    """
+    Compute the (biased) MMD between two samples
+    """
+    K11 = poly_kernel(sample1, sample1, degree)
+    K22 = poly_kernel(sample2, sample2, degree)
+    K12 = poly_kernel(sample1, sample2, degree)
+    return np.mean(K11[:]) + np.mean(K22[:]) - 2 * np.mean(K12[:])
