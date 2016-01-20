@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import
 
 import time
 
+from kameleon_rks.samplers.tools import system_res
 from kameleon_rks.tools.log import Log
 import numpy as np
 
@@ -25,17 +26,15 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
     
     # timings for output and time limit
     times = np.zeros(num_iter)
-#     last_time_printed = time.time()
     
     # for adaptive transition kernels
     avg_accept = 0.
     
-    # init MCMC (first iteration)
     current = start
     current_log_pdf = None
-#     current_kwargs = {}
+    current_kwargs = {}
     
-    logger.info("Starting PMC using %s in D=%d dimensions" % \
+    logger.info("Starting MCMC using %s in D=%d dimensions" % \
                 (transition_kernel.__class__.__name__, D,))
     it = 0
     
@@ -53,9 +52,8 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
                                                                            avg_accept)
                 logger.info(log_str)
         if stage == 0:
-#             prev = np.array([start] * pop_size)
-#             prev_logp = np.array([None] * pop_size)
-            pass
+            prev = np.array([start] * pop_size)
+            prev_logp = np.array([None] * pop_size)
         range_it = range(start_it, start_it + pop_size)
         for it in range_it:
             prop_idx = it - start_it
@@ -66,14 +64,14 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
             
             # generate proposal and acceptance probability
             logger.debug("Performing PMC sample %d" % it)
-            proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], _, _ = transition_kernel.proposal(current, current_log_pdf, **{})
+            proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(current, current_log_pdf, **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
         
             
-#         res_idx = system_res(range(pop_size), logweights[stage, :],)   
-
-#         prev = samples[range_it] = proposals[stage, res_idx]
-#         prev_logp = log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
+        res_idx = system_res(range(pop_size), logweights[stage, :],)   
+        # print(ess)
+        prev = samples[range_it] = proposals[stage, res_idx]
+        prev_logp = log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
         
         # assert()
         
