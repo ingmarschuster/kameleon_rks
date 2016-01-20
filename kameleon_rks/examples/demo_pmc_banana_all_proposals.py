@@ -14,7 +14,7 @@ import numpy as np
 
 
 def one_over_4th_root_t_schedule(t):
-    return 1. / (1 + t) ** (0.24)
+    return 1. / np.sqrt(1 + t)
 
 def get_StaticMetropolis_instance(D, target_log_pdf):
     
@@ -77,7 +77,7 @@ def get_StaticLangevin_instance(D, target_log_pdf, target_grad):
 
 def get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad):
     
-    step_size = 1.
+    step_size = 0.5
     schedule = one_over_4th_root_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
@@ -88,7 +88,7 @@ def get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad):
 
 def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     
-    step_size = 1.
+    step_size = 0.5
     schedule = one_over_4th_root_t_schedule
     acc_star = 0.574
     N = 500
@@ -103,7 +103,7 @@ def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     return instance
 
 def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
-    step_size = 1.
+    step_size = 0.5
     schedule = one_over_4th_root_t_schedule
     acc_star = 0.574
     gamma2 = 0.1
@@ -126,11 +126,11 @@ if __name__ == '__main__':
     target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
 
     samplers = [
-                get_StaticMetropolis_instance(D, target_log_pdf),
-                get_AdaptiveMetropolis_instance(D, target_log_pdf),
-                get_OracleKameleon_instance(D, target_log_pdf),
-                get_Kameleon_instance(D, target_log_pdf),
-                get_StaticLangevin_instance(D, target_log_pdf, target_grad),
+#                get_StaticMetropolis_instance(D, target_log_pdf),
+#                get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                get_OracleKameleon_instance(D, target_log_pdf),
+#                get_Kameleon_instance(D, target_log_pdf),
+#                get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),

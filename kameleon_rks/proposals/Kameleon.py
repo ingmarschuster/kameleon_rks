@@ -116,10 +116,12 @@ class Kameleon(OracleKameleon):
             # re-compute median heuristic for kernel
             self.kernel_sigma = 1. / gamma_median_heuristic(self.Z)
 
-    def update(self, Z):
+    def update(self, Z, num_new = 1):
+        #num_new is not really of interest here
         if self.schedule is not None and len(Z) >= self.n:
             # generate updating probability
             lmbda = self.schedule(self.t)
+            
             
             if np.random.rand() < lmbda:
                 # update sub-sample of chain history

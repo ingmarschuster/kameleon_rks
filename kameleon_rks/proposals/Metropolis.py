@@ -53,20 +53,24 @@ class AdaptiveMetropolis(StaticMetropolis):
             self.mu = np.mean(Z, axis=0)
             self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
     
-    def update(self, Z):
+    def update(self, Z, num_new = 1):
+        assert(len(Z) >= num_new)
         if self.schedule is None and self.Z is None:
             raise ValueError("%s has not seen data yet. Call set_batch()" % self.__class__.__name__)
         
         if self.schedule is not None:
             # generate updating weight
             lmbda = self.schedule(self.t)
+            assert(lmbda < 1)
             
-            # low-rank update of Cholesky, costs O(d^2) only, adding exploration noise on the fly
-            z_new = Z[-1]
-            self.mu, self.L_C = rank_one_update_mean_covariance_cholesky_lmbda(z_new,
-                                                                               lmbda,
-                                                                               self.mu,
-                                                                               self.L_C,
-                                                                               1.,
-                                                                               self.gamma2)
+            # low-rank update of Cholesky, costs O(d^2) only, adding exploration noise on the fly            
+            for z_new in Z[-num_new:]:
+                self.mu, self.L_C = rank_one_update_mean_covariance_cholesky_lmbda(z_new,
+                                                                                   lmbda,
+                                                                                   self.mu,
+                                                                                   self.L_C,
+                                                                                   self.step_size,
+                                                                                   self.gamma2)
+#                assert(not(np.any(np.isnan(self.L_C)) or np.any(np.isinf(self.L_C))))
+
 

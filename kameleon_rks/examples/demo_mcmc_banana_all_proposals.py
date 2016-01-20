@@ -14,7 +14,7 @@ import numpy as np
 
 
 def one_over_sqrt_t_schedule(t):
-    return 1. / np.sqrt(1 + t)
+    return 1. / (1 + t) **0.25
 
 def get_StaticMetropolis_instance(D, target_log_pdf):
     

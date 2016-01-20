@@ -45,7 +45,7 @@ class ProposalBase():
     def next_iteration(self):
         self.t += 1
         
-    def update(self, Z):
+    def update(self, Z, num_new = 1):
         pass
     
     def proposal(self, current, current_log_pdf,  **kwargs):
