@@ -135,7 +135,7 @@ if __name__ == '__main__':
     
     bananicity = 0.03
     V = 100
-    Z = sample_banana(500, D, bananicity, V)
+    
     target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
     target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
 
