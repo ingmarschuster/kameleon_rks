@@ -78,9 +78,9 @@ for field in fields:
     plt.grid(True)
     plt.tight_layout()
     
-    fname_base = "smc_banana"
-    plt.savefig(fname_base + ".png")
-    plt.savefig(fname_base + ".eps")
+#     fname_base = "smc_banana_%s" % field
+#     plt.savefig(fname_base + ".png")
+#     plt.savefig(fname_base + ".eps")
     
     # print info on number of trials
     print(field)
