@@ -30,9 +30,6 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
     # for adaptive transition kernels
     avg_accept = 0.
     
-    current = start
-    current_log_pdf = None
-    current_kwargs = {}
     
     logger.info("Starting PMC using %s in D=%d dimensions" % \
                 (transition_kernel.__class__.__name__, D,))
@@ -64,7 +61,7 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
             
             # generate proposal and acceptance probability
             logger.debug("Performing PMC sample %d" % it)
-            proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(current, current_log_pdf, **{})
+            proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
         
             
