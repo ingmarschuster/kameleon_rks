@@ -6,7 +6,8 @@ from kameleon_rks.examples.plotting import visualize_scatter
 from kameleon_rks.experiments.tools import store_results
 from kameleon_rks.proposals.Langevin import AdaptiveLangevin, \
     OracleKernelAdaptiveLangevin
-from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis
+from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis,\
+    StaticMetropolis
 from kameleon_rks.samplers.mini_pmc import mini_pmc
 from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample, \
     min_ess
@@ -20,6 +21,14 @@ logger = Log.get_logger()
 
 def one_over_sqrt_t_schedule(t):
     return 1. / np.sqrt(1 + t)
+
+def get_StaticMetropolis_instance(D, target_log_pdf):
+    
+    step_size = 8.
+    schedule = one_over_sqrt_t_schedule
+    instance = StaticMetropolis(D, target_log_pdf, step_size, schedule)
+    
+    return instance
 
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
@@ -88,6 +97,7 @@ if __name__ == '__main__':
     num_repetitions = 30
     for _ in range(num_repetitions):
         samplers = [
+#                     get_StaticMetropolis_instance(D, target_log_pdf),
                     get_AdaptiveMetropolis_instance(D, target_log_pdf),
     #                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
@@ -121,7 +131,7 @@ if __name__ == '__main__':
                           time_taken=time_taken,
                           )
     
-            if False:
+            if True:
                 import matplotlib.pyplot as plt
                 visualize_scatter(samples)
                 plt.suptitle("%s" % \
