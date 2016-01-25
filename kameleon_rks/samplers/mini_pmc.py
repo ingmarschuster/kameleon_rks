@@ -73,7 +73,7 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=
         
         # update transition kernel, might do nothing
         transition_kernel.next_iteration()
-        transition_kernel.update(samples[:start_it + pop_size])
+        transition_kernel.update(samples[:start_it + pop_size], pop_size)
         
     # recall it might be less than last iterations due to time budget
     return samples[:it], log_pdf[:it], times[:it]
