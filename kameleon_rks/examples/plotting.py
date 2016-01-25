@@ -99,7 +99,8 @@ def visualize_scatter(samples, step_sizes=None, acceptance_rates=None):
     assert samples.ndim == 2
     
     plt.figure()
-    plt.subplot(221, aspect='equal')
+    if step_sizes is not None or acceptance_rates is not None:
+        plt.subplot(221, aspect='equal')
     plt.plot(samples[:, 0], samples[:, 1], 'bx')
     plt.grid(True)
     plt.title("Samples")

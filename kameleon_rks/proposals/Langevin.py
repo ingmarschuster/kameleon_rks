@@ -39,8 +39,6 @@ class StaticLangevin(StaticMetropolis):
         
         proposal_log_pdf = self.target_log_pdf(proposal)
         
-        
-        
         result_kwargs = {'previous_backward_grad': backward_grad}
         
         return proposal, proposal_log_pdf, current_log_pdf, forward_log_prob, backward_log_prob, result_kwargs
@@ -79,7 +77,6 @@ class AdaptiveLangevin(StaticLangevin):
                                                                                    self.L_C,
                                                                                    self.step_size,
                                                                                    self.gamma2)
-                assert(not(np.any(np.isnan(self.L_C)) or np.any(np.isinf(self.L_C))))
     
 class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     """

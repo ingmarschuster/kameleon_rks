@@ -1,5 +1,8 @@
+from abc import abstractmethod
+
 from kameleon_rks.tools.log import Log
 import numpy as np
+
 
 logger = Log.get_logger()
 
@@ -23,6 +26,10 @@ class ProposalBase():
     
     def set_batch(self, Z):
         pass
+    
+    @abstractmethod
+    def get_name(self):
+        return self.__class__.__name__
     
     def mh(self, backward_log_pdf, forward_log_pdf, backward_log_prob, forward_log_prob):
         log_acc_prob = forward_log_pdf - backward_log_pdf + backward_log_prob - forward_log_prob

@@ -142,6 +142,6 @@ if __name__ == '__main__':
         samples, proposals, accepted, acc_prob, log_pdf, times, step_sizes = mini_mcmc(sampler, start, num_iter, D)
         visualise_trace(samples, log_pdf, accepted, step_sizes)
         plt.suptitle("%s, acceptance rate: %.2f" % \
-                     (sampler.__class__.__name__, np.mean(accepted)))
+                     (sampler.get_name(), np.mean(accepted)))
         
     plt.show()
