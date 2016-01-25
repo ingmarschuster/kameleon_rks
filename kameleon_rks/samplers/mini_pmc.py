@@ -29,12 +29,8 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
     # timings for output and time limit
     times = np.zeros(num_iter)
     
-    # for adaptive transition kernels
-    avg_accept = 0.
-    
-    
     logger.info("Starting PMC using %s in D=%d dimensions" % \
-                (transition_kernel.__class__.__name__, D,))
+                (transition_kernel.get_name(), D,))
     it = 0
     
     for stage in range(num_iter // pop_size):
@@ -45,11 +41,10 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
                 logger.info("Time limit of %ds exceeded. Stopping MCMC at iteration %d." % (time_budget, it))
                 break
             # print  progress
-            if False and stage > 1:
-                log_str = "PMC iteration %d/%d, current log_pdf: %.6f, avg acceptance: %.3f" % (it + 1, num_iter,
-                                                                           np.nan if log_pdf[it - 1] is None else log_pdf[it - 1],
-                                                                           avg_accept)
-                logger.info(log_str)
+        if stage > 1:
+            log_str = "PMC iteration %d/%d, current log_pdf: %.6f" % (it + 1, num_iter,
+                                                                       np.nan if log_pdf[it - 1] is None else log_pdf[it - 1])
+            logger.debug(log_str)
         if stage == 0:
             prev = np.array([start] * pop_size)
             prev_logp = np.array([None] * pop_size)
@@ -62,7 +57,6 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
                 current_log_pdf = None
             
             # generate proposal and acceptance probability
-            logger.debug("Performing PMC sample %d" % it)
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
         
