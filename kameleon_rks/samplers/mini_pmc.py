@@ -9,13 +9,15 @@ import numpy as np
 
 logger = Log.get_logger()
 
-def mini_pmc(transition_kernel, start, num_iter, pop_size, D, recompute_log_pdf=False, time_budget=None):
-    # PMC results
+def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None):
+    D = len(start)
+    
     assert(num_iter % pop_size == 0)
     
     # following not implemented yet
     assert(recompute_log_pdf == False)
     
+    # PMC results
     proposals = np.zeros((num_iter // pop_size, pop_size, D)) + np.nan
     logweights = np.zeros((num_iter // pop_size, pop_size)) + np.nan
     prop_target_logpdf = np.zeros((num_iter // pop_size, pop_size)) + np.nan

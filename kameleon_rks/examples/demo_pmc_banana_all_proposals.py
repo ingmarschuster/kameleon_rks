@@ -140,7 +140,7 @@ if __name__ == '__main__':
         start = np.zeros(D)
         num_iter = 1000
         
-        samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, 10, D)
+        samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, 10)
 
         visualize_scatter(samples)
         plt.suptitle("%s" % \

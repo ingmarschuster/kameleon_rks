@@ -85,7 +85,7 @@ if __name__ == '__main__':
         start = np.zeros(D)
         num_iter = 1000
         
-        samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, pop_size, D)
+        samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, pop_size)
         mom_samp = np.array([(samples**i).mean(0) for i in range(1,4)])
         
         visualize_scatter(samples)
