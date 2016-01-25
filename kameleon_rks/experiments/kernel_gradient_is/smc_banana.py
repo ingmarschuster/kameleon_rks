@@ -122,7 +122,7 @@ if __name__ == '__main__':
             
             fname = os.path.splitext(os.path.basename(__file__))[0] + ".txt"
             store_results(fname,
-                          sampler_name=sampler.__class__.__name__,
+                          sampler_name=sampler.get_name(),
                           D=D,
                           bananicity=bananicity,
                           V=V,
