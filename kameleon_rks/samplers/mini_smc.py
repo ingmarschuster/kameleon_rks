@@ -47,7 +47,7 @@ def mini_smc(num_samples,  # will give size of sample in final iteration
     """
     
     logger.info("Starting SMC using %s" % \
-            (proposal_obj.__class__.__name__))
+            (proposal_obj.get_name()))
     
     if not reweight:
         assert(not across)

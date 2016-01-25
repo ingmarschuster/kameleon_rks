@@ -28,7 +28,7 @@ def mini_mcmc(transition_kernel, start, num_iter, D, recompute_log_pdf=False, ti
     current_kwargs = {}
     
     logger.info("Starting MCMC using %s in D=%d dimensions" % \
-                (transition_kernel.__class__.__name__, D,))
+                (transition_kernel.get_name(), D,))
     
     for it in range(num_iter):
         times[it] = time.time()
