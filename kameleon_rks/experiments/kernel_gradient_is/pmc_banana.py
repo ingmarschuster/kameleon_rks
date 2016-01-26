@@ -22,17 +22,9 @@ logger = Log.get_logger()
 def one_over_sqrt_t_schedule(t):
     return 1. / np.sqrt(1 + t)
 
-def get_StaticMetropolis_instance(D, target_log_pdf):
-    
-    step_size = 8.
-    schedule = one_over_sqrt_t_schedule
-    instance = StaticMetropolis(D, target_log_pdf, step_size, schedule)
-    
-    return instance
-
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
-    step_size = 8.
+    step_size = 5.
     schedule = one_over_sqrt_t_schedule
     gamma2 = 0.1
     instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule)
@@ -46,6 +38,7 @@ def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
     gamma2 = 0.1
     
     instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, gamma2, schedule)
+    instance.manual_gradient_step_size = 0.1
     
     return instance
 
@@ -97,9 +90,8 @@ if __name__ == '__main__':
     num_repetitions = 30
     for _ in range(num_repetitions):
         samplers = [
-#                     get_StaticMetropolis_instance(D, target_log_pdf),
-                    get_AdaptiveMetropolis_instance(D, target_log_pdf),
-    #                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                     get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                    get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                     ]
             
