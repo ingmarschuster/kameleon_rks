@@ -143,7 +143,7 @@ if __name__ == '__main__':
         
     #         visualize_scatter(samples, step_sizes, acceptance_rates)
     #         plt.suptitle("%s" % \
-    #                      (sampler.__class__.__name__))
+    #                      (sampler.__class__.__name__get_name()))
     #     
     #     if False:
     #         plt.show()
