@@ -24,7 +24,7 @@ def one_over_sqrt_t_schedule(t):
 
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
-    step_size = 5.
+    step_size = 500.
     schedule = one_over_sqrt_t_schedule
     gamma2 = 0.1
     instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule)
@@ -33,7 +33,7 @@ def get_AdaptiveMetropolis_instance(D, target_log_pdf):
 
 def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
     
-    step_size = 1.
+    step_size = 100.
     schedule = one_over_sqrt_t_schedule
     gamma2 = 0.1
     
@@ -90,8 +90,8 @@ if __name__ == '__main__':
     num_repetitions = 30
     for _ in range(num_repetitions):
         samplers = [
-#                     get_AdaptiveMetropolis_instance(D, target_log_pdf),
-                    get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                    get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                     get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                     ]
             
