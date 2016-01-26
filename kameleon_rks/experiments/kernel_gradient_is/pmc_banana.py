@@ -38,7 +38,7 @@ def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
     gamma2 = 0.1
     
     instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, gamma2, schedule)
-    instance.manual_gradient_step_size = 0.1
+    instance.manual_gradient_step_size = 1.
     
     return instance
 
