@@ -14,6 +14,9 @@ class StaticLangevin(StaticMetropolis):
         self.grad = grad
         self.manual_gradient_step_size = None
     
+    def get_name(self):
+        return StaticMetropolis.get_name(self) + ",manual_gradient_step_size=%s" % self.manual_gradient_step_size
+    
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)

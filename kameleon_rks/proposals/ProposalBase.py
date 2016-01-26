@@ -29,7 +29,7 @@ class ProposalBase():
     
     @abstractmethod
     def get_name(self):
-        return self.__class__.__name__
+        return self.__class__.__name__ + ",step_size=%.4f" % self.step_size
     
     def mh(self, backward_log_pdf, forward_log_pdf, backward_log_prob, forward_log_prob):
         log_acc_prob = forward_log_pdf - backward_log_pdf + backward_log_prob - forward_log_prob
