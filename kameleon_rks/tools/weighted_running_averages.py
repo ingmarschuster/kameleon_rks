@@ -7,166 +7,150 @@ Created on Tue Jan 26 20:57:37 2016
 
 from __future__ import division, print_function, absolute_import
 
+from choldate._choldate import cholupdate, choldowndate
+from numpy.testing.utils import assert_allclose
+from scipy.misc import logsumexp
+
 import numpy as np
 import scipy as sp
-import scipy.stats as stats
-
-from numpy import exp, log, sqrt
-from scipy.misc import logsumexp
-from numpy.linalg import inv
-from choldate._choldate import cholupdate, choldowndate
 
 
-
-
-def mean_cov_weighted(samps, weights, logspace = True):
+def mean_cov_weighted(samps, weights):
     if len(samps.shape) > len(weights.shape):
         newsh = list(weights.shape)
-        newsh.extend([1]*int(len(samps.shape) - len(weights.shape)))
+        newsh.extend([1] * int(len(samps.shape) - len(weights.shape)))
         weights = weights.reshape(newsh)
     else:
         assert(len(samps.shape) <= len(weights.shape))
-    if logspace:
-        w_s = logsumexp(weights)
-        weights = exp(weights - w_s)
-    else:
-        w_s = weights.sum()
-        weights = weights / w_s
-    mu = np.sum(samps*weights,0)
+        
+    w_s = logsumexp(weights)
+    weights = np.exp(weights - w_s)
+    mu = np.sum(samps * weights, 0)
     w_samps = samps * np.sqrt(weights)
     cov = w_samps.T.dot(w_samps) - np.outer(mu, mu)
 
     return (mu, cov, w_s)        
 
 
-def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace = True, is_Chol = True):
+def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights):
     """
     Parameters
     ==========
     old_mean   -    old mean
-    old_cov    -    old covariance/lower cholesky factor
+    old_cov    -    old covariance (lower cholesky factor)
     old_w_s    -    old sum of weights (in logspace if logspace==True)
     samps      -    new samples
     weights    -    weights of new samples (in logspace if logspace==True)
-    logspace   -    weights in logspace if True
-    is_Chol    -    old_cov and return value are lower cholesky factors
     
     Returns
     =======
     new_mean   -    new mean
-    new_cov    -    new covariance matrix or lower cholesky factor
+    new_cov    -    new covariance matrix's lower cholesky factor
     """
     if len(samps.shape) > len(weights.shape):
         newsh = list(weights.shape)
-        newsh.extend([1]*int(len(samps.shape) - len(weights.shape)))
+        newsh.extend([1] * int(len(samps.shape) - len(weights.shape)))
         weights = weights.reshape(newsh)
     else:
         assert(len(samps.shape) <= len(weights.shape))
-    if logspace:
-        delta_w_s = logsumexp(weights)
-        new_w_s = logsumexp((old_w_s, delta_w_s))
-        weights = exp(weights - new_w_s)
-        old_new_ratio = exp(old_w_s - new_w_s)
-    else:
-        delta_w_s = weights.sum()
-        new_w_s = old_w_s + delta_w_s
-        weights = weights / new_w_s
-        old_new_ratio = old_w_s/new_w_s
+        
+    delta_w_s = logsumexp(weights)
+    new_w_s = logsumexp((old_w_s, delta_w_s))
+    weights = np.exp(weights - new_w_s)
+    old_new_ratio = np.exp(old_w_s - new_w_s)
     
-    new_mean = old_mean*old_new_ratio + np.sum(samps*weights,0)
+    new_mean = old_mean * old_new_ratio + np.sum(samps * weights, 0)
     w_samps = samps * np.sqrt(weights)
     
-    if not is_Chol:
-        new_cov = ((old_cov + np.outer(old_mean, old_mean)) * old_new_ratio
-                            - np.outer(new_mean, new_mean)
-                            +  w_samps.T.dot(w_samps))
-    else:
-        #transpose as choldate expects upper cholesky
-        new_cov = old_cov.copy().T
-        
-        cholupdate(new_cov, old_mean)
-        new_cov = new_cov * np.sqrt(old_new_ratio)
-        choldowndate(new_cov, new_mean)
-        for s in w_samps:
-            cholupdate(new_cov, s)
-    #transpose as we return lower cholesky
-    return (new_mean, new_cov.T, new_w_s)
+    # transpose as choldate expects upper cholesky
+    new_cov = old_cov.copy().T
+    
+    cholupdate(new_cov, old_mean)
+    new_cov = new_cov * np.sqrt(old_new_ratio)
+    choldowndate(new_cov, new_mean)
+    for s in w_samps:
+        cholupdate(new_cov, s)
+    
+    new_cov = new_cov.T
+    
+    return new_mean, new_cov, new_w_s
 
-def chol_add_diag(L, noise, copy = False):
+def cholesky_update_diag(L, noise, downdate=False):
     
     D = L.shape[0]
-    if copy:
-        L = L.copy()
-    #transpose as choldate expects upper cholesky
+    # transpose as choldate expects upper cholesky
     L = L.T
-    noise = sqrt(noise)
+    noise = np.sqrt(noise)
     e_d = np.zeros(D)
     for d in range(D):
         e_d[d] = noise
-        cholupdate(L,  e_d)
+        
+        if downdate:
+            choldowndate(L, e_d)
+        else:
+            cholupdate(L, e_d)
+            
         e_d[:] = 0
-    #transpose as we return lower cholesky
+    # transpose as we return lower cholesky
     return L.T
 
-def test_weighted_weightedUpdate():
+def test_weighted_weighted_update():
     s_d = 20.
     D = 2
     num_w1 = 550
     num_w2 = 550
-    rvs_w = np.random.randn(D*(num_w1+num_w2)).reshape((num_w1+num_w2, D))*s_d
-    w = np.r_[np.ones(num_w1), 2*np.ones(num_w2)]
-    assert(len(w) == (num_w1+num_w2))
+    rvs_w = np.random.randn(D * (num_w1 + num_w2)).reshape((num_w1 + num_w2, D)) * s_d
+    w = np.r_[np.ones(num_w1), 2 * np.ones(num_w2)]
+    assert(len(w) == (num_w1 + num_w2))
     rvs = np.r_[rvs_w, rvs_w[-num_w2:]]
     mean_true = rvs.mean(0)
     cov_true = np.cov(rvs.T)
     chol_true = sp.linalg.cholesky(cov_true, lower=True)
     
-    rd_idx = np.random.permutation(num_w1+num_w2)
+    rd_idx = np.random.permutation(num_w1 + num_w2)
     (rvs_w, w) = (rvs_w[rd_idx], w[rd_idx])
     
     
-    for chol in (False, True):
-        for logspace in (False, True):
-            print("Cholesky", chol, "logspace", logspace)
-            if logspace:
-                weights = log(w)
-                w_s = logsumexp(weights)
-                abs_toler = 5*10**(-2)
-            else:
-                weights = w
-                w_s = w.sum()
-                abs_toler = 5*10**(-2)
-            abs_toler = abs_toler * s_d
-            
+    weights = np.log(w)
+    w_s = logsumexp(weights)
+    abs_toler = 5 * 10 ** (-2)
+    abs_toler = abs_toler * s_d
+    
+    (mean_batch, cov_batch, ws_batch) = mean_cov_weighted(rvs_w, weights)
 
-            
-            (mean_batch, cov_batch, ws_batch) = mean_cov_weighted(rvs_w, weights, logspace)
-            assert(np.allclose(mean_true, mean_batch,  atol=abs_toler) and
-                   np.allclose(cov_true, cov_batch, atol=abs_toler)
-                   and np.allclose(ws_batch, w_s, atol=abs_toler)
-                   )
+    assert_allclose(mean_true, mean_batch, atol=abs_toler)
+    assert_allclose(cov_true, cov_batch, atol=abs_toler)
+    assert_allclose(ws_batch, w_s, atol=abs_toler)
 
-                   
-            start = 500
-            (mean_start, cov_start, ws_start) = mean_cov_weighted(rvs_w[:start], weights[:start], logspace)
-            if not chol:
-                truth = cov_true
-            else:
-                cov_start = sp.linalg.cholesky(cov_start, lower = True)
-                truth = chol_true
-            (mean_upd, cov_upd, ws_upd) = mean_cov_upd_weighted(mean_start, cov_start, ws_start, rvs_w[start:], weights[start:], logspace, chol)
-            assert(np.allclose(mean_true, mean_upd, atol=abs_toler) and
-               np.allclose(truth, cov_upd, atol=abs_toler)
-               and np.allclose(ws_upd, w_s, atol=abs_toler)
-               )
+           
+    start = 500
+    (mean_start, cov_start, ws_start) = mean_cov_weighted(rvs_w[:start], weights[:start])
+    cov_start = sp.linalg.cholesky(cov_start, lower=True)
+    truth = chol_true
+    
+    (mean_upd, cov_upd, ws_upd) = mean_cov_upd_weighted(mean_start, cov_start, ws_start, rvs_w[start:], weights[start:])
+    
+    assert_allclose(mean_true, mean_upd, atol=abs_toler)
+    assert_allclose(truth, cov_upd, atol=abs_toler)
+    assert_allclose(ws_upd, w_s, atol=abs_toler)
 
-def test_chol_add_diag():
+def test_cholesky_update_diag():
     D = 4
     cov = -np.ones((D, D)) + np.eye(D) * 5
-    L = sp.linalg.cholesky(cov, lower = True)
+    L = sp.linalg.cholesky(cov, lower=True)
     
-    truth = sp.linalg.cholesky(cov+np.eye(D), lower = True)
-    updated = chol_add_diag(L,1)
-    if not np.allclose(updated, truth):
-        print(updated, 'should have been', truth)
-        assert()
+    noise = 2
+    truth = sp.linalg.cholesky(cov + np.eye(D)*noise, lower=True)
+    updated = cholesky_update_diag(L, noise)
+    assert_allclose(updated, truth)
+
+def test_cholesky_update_diag_downdate():
+    D = 4
+    cov = -np.ones((D, D)) + np.eye(D) * 5
+    
+    noise = 2
+    L = sp.linalg.cholesky(cov + np.eye(D)*noise, lower=True)
+    updated = cholesky_update_diag(L, noise, downdate=True)
+    
+    truth = sp.linalg.cholesky(cov, lower=True)
+    assert_allclose(updated, truth)
