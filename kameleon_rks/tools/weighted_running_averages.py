@@ -44,7 +44,7 @@ def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace =
     Parameters
     ==========
     old_mean   -    old mean
-    old_cov    -    old covariance/lower cholesky factor
+    old_cov    -    old covariance/upper cholesky factor
     old_w_s    -    old sum of weights (in logspace if logspace==True)
     samps      -    new samples
     weights    -    weights of new samples (in logspace if logspace==True)
@@ -54,7 +54,7 @@ def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace =
     Returns
     =======
     new_mean   -    new mean
-    new_cov    -    new covariance matrix or lower cholesky factor
+    new_cov    -    new covariance matrix or upper cholesky factor
     """
     if len(samps.shape) > len(weights.shape):
         newsh = list(weights.shape)
@@ -98,7 +98,7 @@ def chol_add_diag(L, noise, copy = True):
     for d in range(D):
         e_d[d] = noise
         cholupdate(L,  e_d)
-        e_d[d] = 0
+        e_d[:] = 0
     return L
 
 def test_weighted_weightedUpdate():
@@ -112,7 +112,7 @@ def test_weighted_weightedUpdate():
     rvs = np.r_[rvs_w, rvs_w[-num_w2:]]
     mean_true = rvs.mean(0)
     cov_true = np.cov(rvs.T)
-    chol_true = sp.linalg.cholesky(cov_true, lower=True)
+    chol_true = sp.linalg.cholesky(cov_true, lower=False)
     
     rd_idx = np.random.permutation(num_w1+num_w2)
     (rvs_w, w) = (rvs_w[rd_idx], w[rd_idx])
@@ -145,7 +145,7 @@ def test_weighted_weightedUpdate():
             if not chol:
                 truth = cov_true
             else:
-                cov_start = sp.linalg.cholesky(cov_start, lower = True)
+                cov_start = sp.linalg.cholesky(cov_start, lower = False)
                 truth = chol_true
             (mean_upd, cov_upd, ws_upd) = mean_cov_upd_weighted(mean_start, cov_start, ws_start, rvs_w[start:], weights[start:], logspace, chol)
             assert(np.allclose(mean_true, mean_upd, atol=abs_toler) and
@@ -154,10 +154,11 @@ def test_weighted_weightedUpdate():
                )
 
 def test_chol_add_diag():
-    cov = -np.ones((3,3)) + np.eye(3) * 5
-    L = sp.linalg.cholesky(cov, lower = True)
+    D = 4
+    cov = -np.ones((D, D)) + np.eye(D) * 5
+    L = sp.linalg.cholesky(cov, lower = False)
     
-    truth = sp.linalg.cholesky(cov+np.eye(3), lower = True)
+    truth = sp.linalg.cholesky(cov+np.eye(D), lower = False)
     updated = chol_add_diag(L,1)
     if not np.allclose(updated, truth):
         print(updated, 'should have been', truth)
