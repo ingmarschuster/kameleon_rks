@@ -170,7 +170,7 @@ def test_covariance_updates():
     running_weight_sum = np.log(np.sum(np.ones(len(Z))))
     
     for i in range(int(len(Z2) / 2)):
-        log_weights = np.zeros(2)
+        log_weights = np.log(np.ones(2))
         samples = Z2[i:(i + 1)]
         running_mean, runnung_cov_L, running_weight_sum = update_mean_cov_weighted(running_mean,
                                                                                  runnung_cov_L,
