@@ -1,8 +1,7 @@
 from numpy.testing.utils import assert_allclose
 
 from kameleon_rks.tools.covariance_updates import update_mean_lmbda, \
-    weights_to_lmbdas, log_weights_to_lmbdas, update_mean_cov_L_lmbda, \
-    cholupdate_diag
+    weights_to_lmbdas, log_weights_to_lmbdas, update_mean_cov_L_lmbda
 import numpy as np
 
 
@@ -98,24 +97,3 @@ def test_weights_to_lmbdas_equals_log_version():
     lmbdas2 = log_weights_to_lmbdas(log_sum_old_weights, log_new_weights)
      
     assert_allclose(lmbdas, lmbdas2)
-
-def test_cholesky_update_diag():
-    D = 4
-    cov = -np.ones((D, D)) + np.eye(D) * 5
-    L = np.linalg.cholesky(cov)
-    
-    noise = 2
-    truth = np.linalg.cholesky(cov + np.eye(D) * noise)
-    updated = cholupdate_diag(L, noise)
-    assert_allclose(updated, truth)
-
-def test_cholesky_update_diag_downdate():
-    D = 4
-    cov = -np.ones((D, D)) + np.eye(D) * 5
-    
-    noise = 2
-    L = np.linalg.cholesky(cov + np.eye(D) * noise)
-    updated = cholupdate_diag(L, noise, downdate=True)
-    
-    truth = np.linalg.cholesky(cov)
-    assert_allclose(updated, truth)

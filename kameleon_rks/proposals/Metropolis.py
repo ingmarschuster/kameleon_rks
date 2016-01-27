@@ -2,8 +2,8 @@ from scipy.misc.common import logsumexp
 
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.ProposalBase import ProposalBase
-from kameleon_rks.tools.covariance_updates import cholupdate_diag, \
-    log_weights_to_lmbdas, update_mean_cov_L_lmbda
+from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas,\
+    update_mean_cov_L_lmbda
 import numpy as np
 
 
@@ -21,19 +21,16 @@ class StaticMetropolis(ProposalBase):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        # scale and add noise, O(D^2) + O(D)
+        # in-memory scale to step-size (removed below)
         self.L_C *= np.sqrt(self.step_size)
-        self.L_C = cholupdate_diag(self.L_C, self.gamma2)
         
-        # O(D^2)
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
         forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
+            
         proposal_log_pdf = self.target_log_pdf(proposal)
-        
         results_kwargs = {}
-        
-        # remove noise and unscale, O(D^2) + O(D)
-        self.L_C = cholupdate_diag(self.L_C, self.gamma2, downdate=True)
+            
+        # unscale
         self.L_C /= np.sqrt(self.step_size)
         
         # probability of proposing current when would be sitting at proposal is symmetric
