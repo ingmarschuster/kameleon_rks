@@ -167,7 +167,7 @@ def test_cholesky_update_diag_downdate():
 def test_covariance_updates():
     D = 2
     Z = np.random.randn(100, D)
-    Z2 = np.random.randn(2 * len(Z), D)
+    Z2 = np.random.randn(4, D)
 
     full_cov = np.cov(np.vstack((Z, Z2)).T, ddof=0)
     full_mean = np.mean(np.vstack((Z, Z2)), 0)
@@ -179,7 +179,7 @@ def test_covariance_updates():
     
     for i in range(int(len(Z2) / 2)):
         log_weights = np.zeros(2)
-        samples = Z2[i:(i + 1)]
+        samples = Z2[(2*i):(2*i+1)]
         running_mean, runnung_cov_L, running_weight_sum = update_mean_cov_weighted(running_mean,
                                                                                  runnung_cov_L,
                                                                                  running_weight_sum,
