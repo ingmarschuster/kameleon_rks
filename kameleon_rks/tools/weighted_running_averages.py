@@ -19,7 +19,7 @@ from choldate._choldate import cholupdate, choldowndate
 
 
 
-def mean_cov_weighted(samps, weights, logspace = False):
+def mean_cov_weighted(samps, weights, logspace = True):
     if len(samps.shape) > len(weights.shape):
         newsh = list(weights.shape)
         newsh.extend([1]*int(len(samps.shape) - len(weights.shape)))
@@ -39,22 +39,22 @@ def mean_cov_weighted(samps, weights, logspace = False):
     return (mu, cov, w_s)        
 
 
-def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace = False, is_Chol = False):
+def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace = True, is_Chol = True):
     """
     Parameters
     ==========
     old_mean   -    old mean
-    old_cov    -    old covariance/upper cholesky factor
+    old_cov    -    old covariance/lower cholesky factor
     old_w_s    -    old sum of weights (in logspace if logspace==True)
     samps      -    new samples
     weights    -    weights of new samples (in logspace if logspace==True)
     logspace   -    weights in logspace if True
-    is_Chol    -    old_cov and return value are upper cholesky factors
+    is_Chol    -    old_cov and return value are lower cholesky factors
     
     Returns
     =======
     new_mean   -    new mean
-    new_cov    -    new covariance matrix or upper cholesky factor
+    new_cov    -    new covariance matrix or lower cholesky factor
     """
     if len(samps.shape) > len(weights.shape):
         newsh = list(weights.shape)
@@ -81,25 +81,32 @@ def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace =
                             - np.outer(new_mean, new_mean)
                             +  w_samps.T.dot(w_samps))
     else:
-        new_cov = old_cov.copy()
+        #transpose as choldate expects upper cholesky
+        new_cov = old_cov.copy().T
+        
         cholupdate(new_cov, old_mean)
         new_cov = new_cov * np.sqrt(old_new_ratio)
         choldowndate(new_cov, new_mean)
         for s in w_samps:
             cholupdate(new_cov, s)
-    return (new_mean, new_cov, new_w_s)
+    #transpose as we return lower cholesky
+    return (new_mean, new_cov.T, new_w_s)
 
-def chol_add_diag(L, noise, copy = True):
+def chol_add_diag(L, noise, copy = False):
+    
     D = L.shape[0]
     if copy:
         L = L.copy()
+    #transpose as choldate expects upper cholesky
+    L = L.T
     noise = sqrt(noise)
     e_d = np.zeros(D)
     for d in range(D):
         e_d[d] = noise
         cholupdate(L,  e_d)
         e_d[:] = 0
-    return L
+    #transpose as we return lower cholesky
+    return L.T
 
 def test_weighted_weightedUpdate():
     s_d = 20.
@@ -112,7 +119,7 @@ def test_weighted_weightedUpdate():
     rvs = np.r_[rvs_w, rvs_w[-num_w2:]]
     mean_true = rvs.mean(0)
     cov_true = np.cov(rvs.T)
-    chol_true = sp.linalg.cholesky(cov_true, lower=False)
+    chol_true = sp.linalg.cholesky(cov_true, lower=True)
     
     rd_idx = np.random.permutation(num_w1+num_w2)
     (rvs_w, w) = (rvs_w[rd_idx], w[rd_idx])
@@ -145,7 +152,7 @@ def test_weighted_weightedUpdate():
             if not chol:
                 truth = cov_true
             else:
-                cov_start = sp.linalg.cholesky(cov_start, lower = False)
+                cov_start = sp.linalg.cholesky(cov_start, lower = True)
                 truth = chol_true
             (mean_upd, cov_upd, ws_upd) = mean_cov_upd_weighted(mean_start, cov_start, ws_start, rvs_w[start:], weights[start:], logspace, chol)
             assert(np.allclose(mean_true, mean_upd, atol=abs_toler) and
@@ -156,9 +163,9 @@ def test_weighted_weightedUpdate():
 def test_chol_add_diag():
     D = 4
     cov = -np.ones((D, D)) + np.eye(D) * 5
-    L = sp.linalg.cholesky(cov, lower = False)
+    L = sp.linalg.cholesky(cov, lower = True)
     
-    truth = sp.linalg.cholesky(cov+np.eye(D), lower = False)
+    truth = sp.linalg.cholesky(cov+np.eye(D), lower = True)
     updated = chol_add_diag(L,1)
     if not np.allclose(updated, truth):
         print(updated, 'should have been', truth)
