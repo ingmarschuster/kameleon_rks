@@ -89,8 +89,19 @@ def mean_cov_upd_weighted(old_mean, old_cov, old_w_s, samps, weights, logspace =
             cholupdate(new_cov, s)
     return (new_mean, new_cov, new_w_s)
 
+def chol_add_diag(L, noise, copy = True):
+    D = L.shape[0]
+    if copy:
+        L = L.copy()
+    noise = sqrt(noise)
+    e_d = np.zeros(D)
+    for d in range(D):
+        e_d[d] = noise
+        cholupdate(L,  e_d)
+        e_d[d] = 0
+    return L
 
-def test():
+def test_weighted_weightedUpdate():
     s_d = 20.
     D = 2
     num_w1 = 550
@@ -141,4 +152,13 @@ def test():
                np.allclose(truth, cov_upd, atol=abs_toler)
                and np.allclose(ws_upd, w_s, atol=abs_toler)
                )
+
+def test_chol_add_diag():
+    cov = -np.ones((3,3)) + np.eye(3) * 5
+    L = sp.linalg.cholesky(cov, lower = True)
     
+    truth = sp.linalg.cholesky(cov+np.eye(3), lower = True)
+    updated = chol_add_diag(L,1)
+    if not np.allclose(updated, truth):
+        print(updated, 'should have been', truth)
+        assert()
