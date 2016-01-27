@@ -71,10 +71,11 @@ class AdaptiveMetropolis(StaticMetropolis):
     def set_batch(self, Z, log_weights=None):
         if log_weights is None:
             weights = np.ones(len(Z))
+            log_weights = np.log(weights)
         else:
             weights = np.exp(log_weights)
         
-        self.mu = np.average(Z, axis=0, aweights=weights)
+        self.mu = np.average(Z, axis=0, weights=weights)
         self.L_C = np.linalg.cholesky(self.step_size * np.cov(Z.T, aweights=weights) + np.eye(self.D) * self.gamma2)
         self.log_sum_weights = logsumexp(log_weights)
         
