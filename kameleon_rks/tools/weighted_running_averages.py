@@ -8,12 +8,12 @@ Created on Tue Jan 26 20:57:37 2016
 from __future__ import division, print_function, absolute_import
 
 from choldate._choldate import cholupdate, choldowndate
+from numpy.ma.testutils import assert_close
 from numpy.testing.utils import assert_allclose
 from scipy.misc import logsumexp
 
 import numpy as np
 import scipy as sp
-from numpy.ma.testutils import assert_close
 
 
 def mean_cov_weighted(samps, log_weights):
@@ -55,9 +55,9 @@ def update_mean_cov_weighted(old_mean, old_cov, old_w_s, samps, log_weights):
     else:
         assert(len(samps.shape) <= len(log_weights.shape))
     
-    #check: can this be a lower cholesky?
+    # check: can this be a lower cholesky?
     assert(old_cov[0, -1] == 0)
-    #check: logweights should be nonpositive
+    # check: logweights should be nonpositive
     assert(np.all(log_weights <= 0))
     
 
@@ -109,7 +109,7 @@ def test_weighted_weighted_update():
     num_w1 = 550
     num_w2 = 550
     rvs_w = np.random.randn(D * (num_w1 + num_w2)).reshape((num_w1 + num_w2, D)) * s_d
-    w = np.r_[np.ones(num_w1)/10, 2. * np.ones(num_w2)/10]
+    w = np.r_[np.ones(num_w1) / 10, 2. * np.ones(num_w2) / 10]
     assert(len(w) == (num_w1 + num_w2))
     rvs = np.r_[rvs_w, rvs_w[-num_w2:]]
     mean_true = rvs.mean(0)
@@ -167,19 +167,19 @@ def test_cholesky_update_diag_downdate():
 def test_covariance_updates():
     D = 2
     Z = np.random.randn(100, D)
-    Z2 = np.random.randn(2 * len(Z), D)
+    Z2 = np.random.randn(4, D)
 
-    full_cov = np.cov(np.vstack((Z, Z2)).T)
+    full_cov = np.cov(np.vstack((Z, Z2)).T, ddof=0)
     full_mean = np.mean(np.vstack((Z, Z2)), 0)
     full_cov_L = np.linalg.cholesky(full_cov)
     
-    runnung_cov_L = np.linalg.cholesky(np.cov(Z.T))
+    runnung_cov_L = np.linalg.cholesky(np.cov(Z.T, ddof=0))
     running_mean = np.mean(Z, 0) 
     running_weight_sum = np.log(np.sum(np.ones(len(Z))))
     
     for i in range(int(len(Z2) / 2)):
         log_weights = np.zeros(2)
-        samples = Z2[i:(i + 1)]
+        samples = Z2[(2*i):(2*i+1)]
         running_mean, runnung_cov_L, running_weight_sum = update_mean_cov_weighted(running_mean,
                                                                                  runnung_cov_L,
                                                                                  running_weight_sum,
