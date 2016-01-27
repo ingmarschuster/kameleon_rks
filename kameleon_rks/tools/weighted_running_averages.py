@@ -41,7 +41,7 @@ def update_mean_cov_weighted(old_mean, old_cov, old_w_s, samps, log_weights):
     old_cov     -    old covariance (lower cholesky factor)
     old_w_s     -    old log of sum of weights (logsumexp of log_weights)
     samps       -    new samples
-    log_weights -    log_weights of new samples 
+    log_weights -    log_weights of new samples
     
     Returns
     =======
@@ -54,6 +54,13 @@ def update_mean_cov_weighted(old_mean, old_cov, old_w_s, samps, log_weights):
         log_weights = log_weights.reshape(newsh)
     else:
         assert(len(samps.shape) <= len(log_weights.shape))
+    
+    #check: can this be a lower cholesky?
+    assert(old_cov[0, -1] == 0)
+    #check: logweights should be nonpositive
+    assert(np.all(log_weights <= 0))
+    
+
         
     delta_w_s = logsumexp(log_weights)
     new_w_s = logsumexp((old_w_s, delta_w_s))
@@ -77,7 +84,8 @@ def update_mean_cov_weighted(old_mean, old_cov, old_w_s, samps, log_weights):
     return new_mean, new_cov, new_w_s
 
 def cholesky_update_diag(L, noise, downdate=False):
-    
+    #check: can this be a lower cholesky?
+    assert(L[0, -1] == 0)
     D = L.shape[0]
     # transpose as choldate expects upper cholesky
     L = L.T
@@ -101,7 +109,7 @@ def test_weighted_weighted_update():
     num_w1 = 550
     num_w2 = 550
     rvs_w = np.random.randn(D * (num_w1 + num_w2)).reshape((num_w1 + num_w2, D)) * s_d
-    w = np.r_[np.ones(num_w1), 2 * np.ones(num_w2)]
+    w = np.r_[np.ones(num_w1)/10, 2. * np.ones(num_w2)/10]
     assert(len(w) == (num_w1 + num_w2))
     rvs = np.r_[rvs_w, rvs_w[-num_w2:]]
     mean_true = rvs.mean(0)
@@ -170,7 +178,7 @@ def test_covariance_updates():
     running_weight_sum = np.log(np.sum(np.ones(len(Z))))
     
     for i in range(int(len(Z2) / 2)):
-        log_weights = np.log(np.ones(2))
+        log_weights = np.zeros(2)
         samples = Z2[i:(i + 1)]
         running_mean, runnung_cov_L, running_weight_sum = update_mean_cov_weighted(running_mean,
                                                                                  runnung_cov_L,
