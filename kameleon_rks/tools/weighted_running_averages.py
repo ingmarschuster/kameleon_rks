@@ -141,7 +141,7 @@ def test_cholesky_update_diag():
     L = sp.linalg.cholesky(cov, lower=True)
     
     noise = 2
-    truth = sp.linalg.cholesky(cov + np.eye(D)*noise, lower=True)
+    truth = sp.linalg.cholesky(cov + np.eye(D) * noise, lower=True)
     updated = cholesky_update_diag(L, noise)
     assert_allclose(updated, truth)
 
@@ -150,16 +150,16 @@ def test_cholesky_update_diag_downdate():
     cov = -np.ones((D, D)) + np.eye(D) * 5
     
     noise = 2
-    L = sp.linalg.cholesky(cov + np.eye(D)*noise, lower=True)
+    L = sp.linalg.cholesky(cov + np.eye(D) * noise, lower=True)
     updated = cholesky_update_diag(L, noise, downdate=True)
     
     truth = sp.linalg.cholesky(cov, lower=True)
     assert_allclose(updated, truth)
 
 def test_covariance_updates():
-    D=2
-    Z = np.random.randn(100,D)
-    Z2 = np.random.randn(2*len(Z),D)
+    D = 2
+    Z = np.random.randn(100, D)
+    Z2 = np.random.randn(2 * len(Z), D)
 
     full_cov = np.cov(np.vstack((Z, Z2)).T)
     full_mean = np.mean(np.vstack((Z, Z2)), 0)
@@ -169,9 +169,9 @@ def test_covariance_updates():
     running_mean = np.mean(Z, 0) 
     running_weight_sum = np.log(np.sum(np.ones(len(Z))))
     
-    for i in range(int(len(Z2)/2)):
+    for i in range(int(len(Z2) / 2)):
         log_weights = np.zeros(2)
-        samples = Z2[i:(i+1)]
+        samples = Z2[i:(i + 1)]
         running_mean, runnung_cov_L, running_weight_sum = update_mean_cov_weighted(running_mean,
                                                                                  runnung_cov_L,
                                                                                  running_weight_sum,
