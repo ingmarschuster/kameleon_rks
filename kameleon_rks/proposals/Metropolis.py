@@ -2,10 +2,13 @@ from scipy.misc.common import logsumexp
 
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.ProposalBase import ProposalBase
-from kameleon_rks.tools.covariance_updates import cholupdate_diag, \
-    log_weights_to_lmbdas, update_mean_cov_L_lmbda
+from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas,\
+    update_mean_cov_L_lmbda
+from kameleon_rks.tools.log import Log
 import numpy as np
 
+
+logger = Log.get_logger()
 
 class StaticMetropolis(ProposalBase):
     """
@@ -21,20 +24,14 @@ class StaticMetropolis(ProposalBase):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        # scale and add noise, O(D^2) + O(D)
-        self.L_C *= np.sqrt(self.step_size)
-        self.L_C = cholupdate_diag(self.L_C, self.gamma2)
-        
-        # O(D^2)
-        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
-        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
+        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C,
+                                   is_cholesky=True, cov_scaling=self.step_size)[0]
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
+                                              Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
+
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
-        
-        # remove noise and unscale, O(D^2) + O(D)
-        self.L_C = cholupdate_diag(self.L_C, self.gamma2, downdate=True)
-        self.L_C /= np.sqrt(self.step_size)
         
         # probability of proposing current when would be sitting at proposal is symmetric
         return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
@@ -48,21 +45,49 @@ class AdaptiveMetropolis(StaticMetropolis):
     def __init__(self, D, target_log_pdf, step_size, gamma2, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
+        assert gamma2 > 0 and gamma2 < 1
+        
         self.gamma2 = gamma2
         
         self.mu = np.zeros(D)
         
         # assume that we have observed D samples so far
         self.log_sum_weights = np.log(D)
+    
+    def proposal(self, current, current_log_pdf, **kwargs):
+        # mixture proposal with isotropic random walk
+        if np.random.rand() < self.gamma2:
+            use_adaptive_proposal = False
+        else:
+            use_adaptive_proposal = True
+        
+        if use_adaptive_proposal:
+            logger.debug("Proposal with learned covariance")
+            return StaticMetropolis.proposal(self, current, current_log_pdf, **kwargs)
+        else:
+            if current_log_pdf is None:
+                current_log_pdf = self.target_log_pdf(current)
+            
+            logger.debug("Proposal with isotropic covariance")
+            proposal = sample_gaussian(N=1, mu=current, cov_scaling=self.step_size)[0]
+            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, cov_scaling=self.step_size)
+            
+            proposal_log_pdf = self.target_log_pdf(proposal)
+            results_kwargs = {}
+                
+            # probability of proposing current when would be sitting at proposal is symmetric
+            return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
 
     def set_batch(self, Z, log_weights=None):
         if log_weights is None:
             weights = np.ones(len(Z))
+            log_weights = np.log(weights)
         else:
             weights = np.exp(log_weights)
         
-        self.mu = np.average(Z, axis=0, aweights=weights)
-        self.L_C = np.linalg.cholesky(self.step_size * np.cov(Z.T, aweights=weights) + np.eye(self.D) * self.gamma2)
+        self.mu = np.average(Z, axis=0, weights=weights)
+        cov = np.cov(Z.T, aweights=weights)
+        self.L_C = np.linalg.cholesky(cov)
         self.log_sum_weights = logsumexp(log_weights)
         
     def update(self, Z, num_new=1, log_weights=None):
@@ -80,4 +105,5 @@ class AdaptiveMetropolis(StaticMetropolis):
         self.mu, self.L_C = update_mean_cov_L_lmbda(Z[-num_new:], self.mu, self.L_C, lmbdas)
         
         # update weights
-        self.log_sum_weights = logsumexp([self.log_sum_weights, log_weights[-num_new:]])
+        stacked = np.hstack((self.log_sum_weights, log_weights[-num_new:]))
+        self.log_sum_weights = logsumexp(stacked)

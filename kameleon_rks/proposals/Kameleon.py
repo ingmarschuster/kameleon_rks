@@ -44,9 +44,8 @@ class OracleKameleon(StaticMetropolis):
             if len(Z) > self.n:
                 inds = np.random.permutation(len(Z))[:self.n]
                 self.Z = Z[inds]
-                return
-        
-        self.Z = Z
+        else:
+            self.Z = Z
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if self.Z is None and self.schedule is None:
