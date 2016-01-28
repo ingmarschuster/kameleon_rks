@@ -25,15 +25,9 @@ class StaticMetropolis(ProposalBase):
         self.L_C *= np.sqrt(self.step_size)
         self.L_C = cholupdate_diag(self.L_C, self.gamma2)
         
-<<<<<<< HEAD
-        # O(D^2)
-        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
-        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
-=======
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
         forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
 
->>>>>>> move isotropic mixture proposal code to AM class
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
