@@ -25,9 +25,15 @@ class StaticMetropolis(ProposalBase):
         self.L_C *= np.sqrt(self.step_size)
         self.L_C = cholupdate_diag(self.L_C, self.gamma2)
         
+<<<<<<< HEAD
         # O(D^2)
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
         forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
+=======
+        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
+
+>>>>>>> move isotropic mixture proposal code to AM class
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
@@ -56,6 +62,31 @@ class AdaptiveMetropolis(StaticMetropolis):
         
         # assume that we have observed D samples so far
         self.log_sum_weights = np.log(D)
+    
+    def proposal(self, current, current_log_pdf, **kwargs):
+        # mixture proposal with isotropic random walk
+        if np.random.rand() < self.gamma2:
+            use_adaptive_proposal = False
+        else:
+            use_adaptive_proposal = True
+        
+        if use_adaptive_proposal:
+            logger.debug("Proposal with learned covariance")
+            return StaticMetropolis.proposal(self, current, current_log_pdf, **kwargs)
+        else:
+            if current_log_pdf is None:
+                current_log_pdf = self.target_log_pdf(current)
+            
+            logger.debug("Proposal with isotropic covariance")
+            Sigma = np.eye(self.D) * np.sqrt(self.step_size)
+            proposal = sample_gaussian(N=1, mu=current, Sigma=Sigma, is_cholesky=True)[0]
+            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=Sigma, is_cholesky=True)
+            
+            proposal_log_pdf = self.target_log_pdf(proposal)
+            results_kwargs = {}
+                
+            # probability of proposing current when would be sitting at proposal is symmetric
+            return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
 
     def set_batch(self, Z, log_weights=None):
         if log_weights is None:
@@ -63,8 +94,9 @@ class AdaptiveMetropolis(StaticMetropolis):
         else:
             weights = np.exp(log_weights)
         
-        self.mu = np.average(Z, axis=0, aweights=weights)
-        self.L_C = np.linalg.cholesky(self.step_size * np.cov(Z.T, aweights=weights) + np.eye(self.D) * self.gamma2)
+        self.mu = np.average(Z, axis=0, weights=weights)
+        cov = np.cov(Z.T, aweights=weights)
+        self.L_C = np.linalg.cholesky(cov)
         self.log_sum_weights = logsumexp(log_weights)
         
     def update(self, Z, num_new=1, log_weights=None):
