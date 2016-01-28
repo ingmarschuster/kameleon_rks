@@ -20,7 +20,7 @@ def test_update_mean_lmbda():
     
     assert_allclose(old_mean, full_mean)
 
-def test_update_mean_cov_L_lmbda_converges_to_cov():
+def test_update_mean_cov_L_lmbda_converges_to_mean_and_cov():
     N_init = 10
     N = 10000
     D = 2
@@ -43,6 +43,30 @@ def test_update_mean_cov_L_lmbda_converges_to_cov():
     
     assert_allclose(full_mean, mean)
     assert_allclose(full_cov, cov, atol=1e-3)
+
+def test_update_mean_cov_L_lmbda_converges_to_weighted_mean_and_cov():
+    N_init = 10
+    N = 10000
+    D = 2
+    X = np.random.randn(N, D)
+    weights = np.random.rand(N)
+    
+    old_mean = np.average(X[:N_init], axis=0, weights=weights[:N_init])
+    old_cov_L = np.linalg.cholesky(np.cov(X[:N_init].T, ddof=0))
+    
+    sum_old_weights = np.sum(weights[:N_init])
+    lmbdas = weights_to_lmbdas(sum_old_weights, weights[N_init:])
+    
+    mean, cov_L = update_mean_cov_L_lmbda(X[N_init:], old_mean, old_cov_L, lmbdas)
+
+    full_mean = np.average(X, axis=0, weights=weights)
+    
+    # the above method uses N rather than N-1 to normalise covariance (biased)
+    full_cov = np.cov(X.T, ddof=0, aweights=weights)
+    cov = np.dot(cov_L, cov_L.T)
+    
+    assert_allclose(full_mean, mean)
+    assert_allclose(full_cov, cov, atol=1e-2)
 
 def test_weights_to_lmbdas_single():
     N = 1
@@ -98,24 +122,3 @@ def test_weights_to_lmbdas_equals_log_version():
     lmbdas2 = log_weights_to_lmbdas(log_sum_old_weights, log_new_weights)
      
     assert_allclose(lmbdas, lmbdas2)
-
-def test_cholesky_update_diag():
-    D = 4
-    cov = -np.ones((D, D)) + np.eye(D) * 5
-    L = np.linalg.cholesky(cov)
-    
-    noise = 2
-    truth = np.linalg.cholesky(cov + np.eye(D) * noise)
-    updated = cholupdate_diag(L, noise)
-    assert_allclose(updated, truth)
-
-def test_cholesky_update_diag_downdate():
-    D = 4
-    cov = -np.ones((D, D)) + np.eye(D) * 5
-    
-    noise = 2
-    L = np.linalg.cholesky(cov + np.eye(D) * noise)
-    updated = cholupdate_diag(L, noise, downdate=True)
-    
-    truth = np.linalg.cholesky(cov)
-    assert_allclose(updated, truth)
