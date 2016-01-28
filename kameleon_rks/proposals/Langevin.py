@@ -69,8 +69,8 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     Uses the kernel exponential family to estimate the gradient, useing oracle samples.
     """
     
-    def __init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule=None, acc_star=None):
-        AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, gamma2, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, n, surrogate, step_size, schedule=None, acc_star=None):
+        AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, schedule, acc_star)
         
         self.n = n
         self.surrogate = surrogate
@@ -89,12 +89,9 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     Uses the kernel exponential family to estimate the gradient.
     """
     
-    def __init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule=None, acc_star=None):
-        OracleKernelAdaptiveLangevin.__init__(self, D, target_log_pdf, n, surrogate, step_size, gamma2, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, n, surrogate, step_size, schedule=None, acc_star=None):
+        OracleKernelAdaptiveLangevin.__init__(self, D, target_log_pdf, n, surrogate, step_size, schedule, acc_star)
         
-        self.surrogate = surrogate
-        self.n = n
-    
     def update(self, Z, num_new=1):
         OracleKernelAdaptiveLangevin.update(self, Z, num_new)
         
