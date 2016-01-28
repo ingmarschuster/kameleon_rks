@@ -51,3 +51,41 @@ def log_weights_to_lmbdas(log_sum_old_weights, log_new_weights):
         lmbdas[i] = np.exp(log_lmbda)
     
     return lmbdas
+
+def cholupdate_diag(L, noise, downdate=False):
+    # check: can this be a lower cholesky?
+    assert(L[0, -1] == 0)
+    D = L.shape[0]
+    
+    noise_sqrt = np.sqrt(noise)
+    
+    # work on upper triangular cholesky internally
+    L = L.T
+    
+    e_d = np.zeros(D)
+    for d in range(D):
+        e_d[:] = 0
+        e_d[d] = noise_sqrt
+        
+        # That is O(D^2) and therefore not efficient when used in a loop
+        if downdate:
+            choldowndate(L, e_d)
+        else:
+            cholupdate(L, e_d)
+        
+        # TODO:
+        # in contrast, can do a simplified update when knowing that e_d is sparse
+        # manual Cholesky update (only doing the d-th component of algorithm on
+        # https://en.wikipedia.org/wiki/Cholesky_decomposition#Rank-one_update
+#             # wiki (MB) code:
+#             r = sqrt(L(k,k)^2 + x(k)^2);
+#             c = r / L(k, k);
+#             s = x(k) / L(k, k);
+#             L(k, k) = r;
+#             L(k+1:n,k) = (L(k+1:n,k) + s*x(k+1:n)) / c;
+#             x(k+1:n) = c*x(k+1:n) - s*L(k+1:n,k);
+        
+    # transform back to lower triangular version
+    L = L.T
+    
+    return L

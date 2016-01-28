@@ -2,13 +2,10 @@ from scipy.misc.common import logsumexp
 
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.ProposalBase import ProposalBase
-from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
-    update_mean_cov_L_lmbda
-from kameleon_rks.tools.log import Log
+from kameleon_rks.tools.covariance_updates import cholupdate_diag, \
+    log_weights_to_lmbdas, update_mean_cov_L_lmbda
 import numpy as np
 
-
-logger = Log.get_logger()
 
 class StaticMetropolis(ProposalBase):
     """
@@ -24,29 +21,19 @@ class StaticMetropolis(ProposalBase):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
-        # in-memory scale to step-size (removed below)
+        # scale and add noise, O(D^2) + O(D)
         self.L_C *= np.sqrt(self.step_size)
+        self.L_C = cholupdate_diag(self.L_C, self.gamma2)
         
-        # mixture proposal with isotropic random walk
-        if np.random.rand() < self.gamma2:
-            isotropic_proposal = True
-        else:
-            isotropic_proposal = False
-        
-        if not isotropic_proposal:
-            logger.debug("Proposal with learned covariance")
-            proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
-            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
-        else:
-            logger.debug("Proposal with isotropic covariance")
-            Sigma = np.eye(self.D) * np.sqrt(self.step_size)
-            proposal = sample_gaussian(N=1, mu=current, Sigma=Sigma, is_cholesky=True)[0]
-            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=Sigma, is_cholesky=True)
-            
+        # O(D^2)
+        proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C, is_cholesky=True)[0]
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, Sigma=self.L_C, is_cholesky=True)
         proposal_log_pdf = self.target_log_pdf(proposal)
+        
         results_kwargs = {}
-            
-        # unscale
+        
+        # remove noise and unscale, O(D^2) + O(D)
+        self.L_C = cholupdate_diag(self.L_C, self.gamma2, downdate=True)
         self.L_C /= np.sqrt(self.step_size)
         
         # probability of proposing current when would be sitting at proposal is symmetric
@@ -71,11 +58,10 @@ class AdaptiveMetropolis(StaticMetropolis):
     def set_batch(self, Z, log_weights=None):
         if log_weights is None:
             weights = np.ones(len(Z))
-            log_weights = np.log(weights)
         else:
             weights = np.exp(log_weights)
         
-        self.mu = np.average(Z, axis=0, weights=weights)
+        self.mu = np.average(Z, axis=0, aweights=weights)
         self.L_C = np.linalg.cholesky(self.step_size * np.cov(Z.T, aweights=weights) + np.eye(self.D) * self.gamma2)
         self.log_sum_weights = logsumexp(log_weights)
         
