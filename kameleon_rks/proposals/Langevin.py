@@ -1,7 +1,7 @@
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
-from kameleon_rks.proposals.Metropolis import StaticMetropolis
+from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
+    AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
-from kameleon_rks.tools.running_averages import rank_one_update_mean_covariance_cholesky_lmbda
 import numpy as np
 
 
@@ -29,16 +29,18 @@ class StaticLangevin(StaticMetropolis):
         
         gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
-        # noise covariance square root with step size
-        L = np.sqrt(self.step_size) * self.L_C
-        
         forward_mu = current + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
-        proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=L, is_cholesky=True)[0]
-        forward_log_prob = log_gaussian_pdf(proposal, forward_mu, L, is_cholesky=True)
+        proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=self.L_C,
+                                   is_cholesky=True, cov_scaling=self.step_size)[0]
+        forward_log_prob = log_gaussian_pdf(proposal, forward_mu, self.L_C,
+                                            is_cholesky=True,
+                                            cov_scaling=self.step_size)
         
         backward_grad = self.grad(proposal)
         backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
-        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, L, is_cholesky=True)
+        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
+                                            is_cholesky=True,
+                                            cov_scaling=self.step_size)
         
         proposal_log_pdf = self.target_log_pdf(proposal)
         
@@ -46,40 +48,19 @@ class StaticLangevin(StaticMetropolis):
         
         return proposal, proposal_log_pdf, current_log_pdf, forward_log_prob, backward_log_prob, result_kwargs
 
-class AdaptiveLangevin(StaticLangevin):
-    def __init__(self, D, target_log_pdf, grad, step_size, gamma2, schedule=None, acc_star=None):
+class AdaptiveLangevin(StaticLangevin, AdaptiveMetropolis):
+    def __init__(self, D, target_log_pdf, grad, step_size, schedule=None, acc_star=None):
         StaticLangevin.__init__(self, D, target_log_pdf, grad, step_size, schedule, acc_star)
+        
+        # gamma2 in AM is not used
+        gamma2_dummy = 0.1
+        AdaptiveMetropolis.__init__(self, D, target_log_pdf, step_size, gamma2_dummy, schedule, acc_star)
+        
+    def proposal(self, current, current_log_pdf, **kwargs):
+        return StaticLangevin.proposal(self, current, current_log_pdf)
 
-        self.gamma2 = gamma2
-
-        if self.schedule is not None:
-            # start from scratch
-            self.mu = np.zeros(self.D)
-        else:
-            # make user call the set_batch function
-            self.mu = None
-            self.L_C = None
-
-    def set_batch(self, Z):
-        # avoid rank-deficient covariances
-        if len(Z) > self.D:
-            self.mu = np.mean(Z, axis=0)
-            self.L_C = np.linalg.cholesky(np.cov(Z.T) + np.eye(Z.shape[1]) * self.gamma2)
-    
-    def update(self, Z, num_new=1):
-        if self.schedule is not None:
-            # generate updating weight
-            lmbda = self.schedule(self.t)
-            assert(lmbda < 1)
-            
-            # low-rank update of Cholesky, costs O(d^2) only, adding exploration noise on the fly
-            for z_new in Z[-num_new:]:
-                self.mu, self.L_C = rank_one_update_mean_covariance_cholesky_lmbda(z_new,
-                                                                                   lmbda,
-                                                                                   self.mu,
-                                                                                   self.L_C,
-                                                                                   self.step_size,
-                                                                                   self.gamma2)
+    def update(self, Z, num_new=1, log_weights=None):
+        return AdaptiveMetropolis.update(self, Z, num_new, log_weights)
     
 class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     """
