@@ -48,6 +48,8 @@ class AdaptiveMetropolis(StaticMetropolis):
     def __init__(self, D, target_log_pdf, step_size, gamma2, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
+        assert gamma2 > 0 and gamma2 < 1
+        
         self.gamma2 = gamma2
         
         self.mu = np.zeros(D)
