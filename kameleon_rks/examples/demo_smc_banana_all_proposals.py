@@ -14,13 +14,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def one_over_4th_root_t_schedule(t):
-    return 1. / (1 + t) ** (0.24)
+def one_over_sqrt_t_schedule(t):
+    return 1. / (1 + t) ** 0.5
 
 def get_StaticMetropolis_instance(D, target_log_pdf):
     
     step_size = 8.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     instance = StaticMetropolis(D, target_log_pdf, step_size, schedule, acc_star)
     
@@ -29,7 +29,7 @@ def get_StaticMetropolis_instance(D, target_log_pdf):
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
     step_size = 8.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
     instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule, acc_star)
@@ -39,7 +39,7 @@ def get_AdaptiveMetropolis_instance(D, target_log_pdf):
 def get_OracleKameleon_instance(D, target_log_pdf):
     
     step_size = 30.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
     n = 500
@@ -55,7 +55,7 @@ def get_OracleKameleon_instance(D, target_log_pdf):
 def get_Kameleon_instance(D, target_log_pdf):
     
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
     
@@ -69,7 +69,7 @@ def get_Kameleon_instance(D, target_log_pdf):
 def get_AdaptiveKameleon_instance(D, target_log_pdf):
     
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     gamma2 = 0.1
     
@@ -83,7 +83,7 @@ def get_AdaptiveKameleon_instance(D, target_log_pdf):
 def get_StaticLangevin_instance(D, target_log_pdf, target_grad):
     
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.234
     
     instance = StaticLangevin(D, target_log_pdf, target_grad, step_size, schedule, acc_star)
@@ -93,39 +93,36 @@ def get_StaticLangevin_instance(D, target_log_pdf, target_grad):
 def get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad):
     
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
-    acc_star = 0.234
-    gamma2 = 0.1
+    schedule = one_over_sqrt_t_schedule
+    acc_star = 0.574
     
-    instance = AdaptiveLangevin(D, target_log_pdf, target_grad, step_size, gamma2, schedule, acc_star)
+    instance = AdaptiveLangevin(D, target_log_pdf, target_grad, step_size, schedule, acc_star)
     
     return instance
 
 def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.574
     N = 500
-    gamma2 = 0.1
     Z = sample_banana(N=N, D=D, bananicity=0.03, V=100)
     
     surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=N)
     surrogate.fit(Z)
     
-    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, gamma2, schedule, acc_star)
+    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, schedule, acc_star)
     
     return instance
 
 def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     step_size = 1.
-    schedule = one_over_4th_root_t_schedule
+    schedule = one_over_sqrt_t_schedule
     acc_star = 0.574
-    gamma2 = 0.1
     n = 500
     
     surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=n)
-    instance = KernelAdaptiveLangevin(D, target_log_pdf, n, surrogate, step_size, gamma2, schedule, acc_star)
+    instance = KernelAdaptiveLangevin(D, target_log_pdf, n, surrogate, step_size, schedule, acc_star)
     
     return instance
 
@@ -154,9 +151,9 @@ if __name__ == '__main__':
     for sampler in samplers:
         start = np.zeros(D)
         
-        num_population = 100
+        num_population = 200
         num_samples = num_population
-        bridge_start = mvnorm(np.zeros(D), np.eye(D) * np.sqrt(2.8 / D))
+        bridge_start = mvnorm(np.zeros(D), np.eye(D) * 10)
         samples, log_target_densities, step_sizes, acceptance_rates, evid = mini_smc(num_samples,
                                                                                       num_population,
                                                                                       bridge_start,
