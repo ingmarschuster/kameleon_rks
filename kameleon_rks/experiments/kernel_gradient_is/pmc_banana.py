@@ -42,6 +42,7 @@ if __name__ == "__main__":
         schedule = one_over_sqrt_t_schedule
         
         instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, schedule)
+#         instance.manual_gradient_step_size = 1.
         
         return instance
     
@@ -95,7 +96,7 @@ if __name__ == "__main__":
         return instance
     
     if __name__ == '__main__':
-        Log.set_loglevel(20)
+        Log.set_loglevel(10)
         D = 2
         
         bananicity = 0.1
@@ -105,7 +106,7 @@ if __name__ == "__main__":
         true_var[0] = 100
         true_var[1] = 200
         
-        num_population = 200
+        num_population = 100
         start = np.zeros(D)
         num_iter = 2000
         
@@ -121,9 +122,9 @@ if __name__ == "__main__":
         num_repetitions = 30
         for _ in range(num_repetitions):
             samplers = [
-                        get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                         get_AdaptiveMetropolis_instance(D, target_log_pdf),
                         get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-                        get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                         get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                     get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                         
                         ]

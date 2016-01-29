@@ -1,4 +1,5 @@
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
+from kameleon_rks.examples.plotting import visualise_fit
 from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
     AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
@@ -40,6 +41,9 @@ class StaticLangevin(StaticMetropolis):
                                                 is_cholesky=True,
                                                 cov_scaling=self.step_size)
         except Exception:
+            print current
+            print proposal
+            assert()
             pass
         
         proposal_log_pdf = self.target_log_pdf(proposal)
@@ -113,3 +117,10 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
         # update surrogate
         logger.debug("Updating surrogate gradient model using %d data." % num_new)
         self.surrogate.update_fit(Z[-num_new:], weights[-num_new:])
+        
+        import matplotlib.pyplot as plt
+        print "sum_weights:", self.surrogate.sum_weights
+        Xs = np.linspace(-30, 30, 50)
+        Ys = np.linspace(-20, 40, 50)
+        visualise_fit(self.surrogate, Z, Xs, Ys)
+        plt.show()
