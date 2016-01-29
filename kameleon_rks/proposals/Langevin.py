@@ -14,9 +14,6 @@ class StaticLangevin(StaticMetropolis):
         self.grad = grad
         self.manual_gradient_step_size = None
     
-    def get_name(self):
-        return StaticMetropolis.get_name(self) + ",manual_gradient_step_size=%s" % self.manual_gradient_step_size
-    
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
@@ -92,7 +89,7 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
         else:
             weights = np.exp(log_weights)
         
-        logger.info("Fitting surrogate gradient model to %d data." % len(Z))
+        logger.debug("Fitting surrogate gradient model to %d data." % len(Z))
         self.surrogate.fit(Z, weights)
     
 class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
@@ -114,5 +111,5 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
             weights = np.exp(log_weights)
         
         # update surrogate
-        logger.info("Updating surrogate gradient model using %d data." % len(Z))
+        logger.debug("Updating surrogate gradient model using %d data." % num_new)
         self.surrogate.update_fit(Z[-num_new:], weights[-num_new:])
