@@ -1,4 +1,8 @@
 import os
+
+from kameleon_rks.proposals.Langevin import StaticLangevin
+
+
 def gen_result_fname():
     return os.path.join(os.path.expanduser('~'), "kameleon_rks_results", "kernel_gradient_is", os.path.splitext(os.path.basename(__file__))[0] + ".txt")
 
@@ -28,28 +32,26 @@ if __name__ == "__main__":
         return 1. / np.sqrt(1 + t)
     
     def get_AdaptiveMetropolis_instance(D, target_log_pdf):
-        
         step_size = 1.
-        schedule = one_over_sqrt_t_schedule
         gamma2 = 0.1
-        instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule)
+        instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
+        
+        return instance
+    
+    def get_StaticLangevin_instance(D, target_log_pdf, grad):
+        step_size = 1.
+        instance = StaticLangevin(D, target_log_pdf, grad, step_size)
         
         return instance
     
     def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
-        
         step_size = 1.
-        schedule = one_over_sqrt_t_schedule
-        
-        instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, schedule)
-#         instance.manual_gradient_step_size = 1.
+        instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size)
         
         return instance
     
     def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
-        
         step_size = 1.
-        schedule = one_over_sqrt_t_schedule
         m = 500
         N = 5000
         Z = sample_banana(N, D, bananicity, V)
@@ -76,14 +78,13 @@ if __name__ == "__main__":
             visualise_fit(surrogate, Z, Xs, Ys)
             plt.show()
             
-        instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule)
+        instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         
         return instance
     
     def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
         
         step_size = 1.
-        schedule = one_over_sqrt_t_schedule
         m = 100
         
         surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
         logger.info("kernel exp family uses %s" % surrogate.get_parameters())
         
         # no schedule means no step size adaptation
-        instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule=None)
+        instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         
         return instance
     
@@ -118,11 +119,11 @@ if __name__ == "__main__":
         target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
         target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
     
-        
         num_repetitions = 30
         for _ in range(num_repetitions):
             samplers = [
 #                         get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                         get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                         get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
 #                         get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                     get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
