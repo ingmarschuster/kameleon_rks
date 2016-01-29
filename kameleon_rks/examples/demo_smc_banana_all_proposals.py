@@ -112,7 +112,7 @@ def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
     surrogate.fit(Z)
     
-    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, schedule, acc_star)
+    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule, acc_star)
     
     return instance
 
