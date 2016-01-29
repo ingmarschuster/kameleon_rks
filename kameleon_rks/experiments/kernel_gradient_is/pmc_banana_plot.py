@@ -1,22 +1,24 @@
 from matplotlib.lines import Line2D
+import os
 
 from kameleon_rks.experiments.latex_plot_init import plt
 import numpy as np
 import pandas as pd
+from kameleon_rks.experiments.kernel_gradient_is.pmc_banana import gen_result_fname
 
 
-fname = "pmc_banana.txt"
-
+result_fname = gen_result_fname()
+result_fname_base = os.path.splitext(result_fname)[0]
 
 sampler_names = [
                  'AdaptiveMetropolis',
                  'AdaptiveLangevin',
-#                  'OracleKernelAdaptiveLangevin'
+                'OracleKernelAdaptiveLangevin'
                  ]
 sampler_plot_names = {
-                  'AdaptiveMetropolis': 'AM',
-                  'AdaptiveLangevin': 'MALA',
-                  'OracleKernelAdaptiveLangevin': 'K-MALA',
+                  'AdaptiveMetropolis': 'PMC',
+                  'AdaptiveLangevin': 'GIS',
+                  'OracleKernelAdaptiveLangevin': 'KGIS',
                   }
 sampler_colors = {
                   'AdaptiveMetropolis': 'blue',
@@ -43,9 +45,9 @@ conditions = kwargs_gen(
 
 # x-axis of plot
 x_field = 'num_population'
-x_field_values = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
+x_field_values = []
 
-df = pd.read_csv(fname, index_col=0)
+df = pd.read_csv(result_fname, index_col=0)
 
 for field in fields:
     plt.figure()
@@ -53,12 +55,21 @@ for field in fields:
     for sampler_name in sampler_names:
         # filter out desired entries
         mask = (df.sampler_name == sampler_name)
-        for k,v in conditions.items():
+        if mask.sum() == 0:
+            print "No entries for %s" % sampler_name
+            assert()
+        
+        for k, v in conditions.items():
             mask &= (df[k] == v)
         current = df.loc[mask]
         
         # only use desired values of x_fields
-        current = current.loc[[True if x in x_field_values else False for x in current[x_field]]]
+        if len(x_field_values) > 0:
+            current = current.loc[[True if x in x_field_values else False for x in current[x_field]]]
+    
+        # avoid empty case
+        if len(current) == 0:
+            continue
     
         # use ints on x-axis
         current[x_field] = current[x_field].astype(int)
@@ -79,6 +90,11 @@ for field in fields:
         
         plt.errorbar(x_values, averages, yerr=[lower_errors, upper_errors], color=sampler_colors[sampler_name])
 
+        # print info on number of trials
+        print field
+        print("Average number of trials: %d" % int(np.round(current.groupby(x_field).apply(len).mean())))
+        print(current.groupby(x_field).apply(len))
+
     lines = [ Line2D([0, 0], [0, 0], color=sampler_colors[sampler_name]) for sampler_name in sampler_names]
     plt.legend(lines, [sampler_plot_names[sampler_name] for sampler_name in sampler_names])
     plt.xlabel("Population size")
@@ -87,12 +103,7 @@ for field in fields:
     plt.grid(True)
     plt.tight_layout()
     
-    fname_base = "pmc_banana_%s" % field
-    plt.savefig(fname_base + ".png")
-    plt.savefig(fname_base + ".eps")
-    
-    # print info on number of trials
-    print("Average number of trials: %d" % int(np.round(current.groupby(x_field).apply(len).mean())))
-    print(current.groupby(x_field).apply(len))
+    plt.savefig(result_fname_base + ".png")
+    plt.savefig(result_fname_base + ".eps")
     
 plt.show()
