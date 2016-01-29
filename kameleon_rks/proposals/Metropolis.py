@@ -2,7 +2,7 @@ from scipy.misc.common import logsumexp
 
 from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
 from kameleon_rks.proposals.ProposalBase import ProposalBase
-from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas,\
+from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
     update_mean_cov_L_lmbda
 from kameleon_rks.tools.log import Log
 import numpy as np
@@ -51,8 +51,8 @@ class AdaptiveMetropolis(StaticMetropolis):
         
         self.mu = np.zeros(D)
         
-        # assume that we have observed D samples so far
-        self.log_sum_weights = np.log(D)
+        # assume that we have observed 2*D samples so far (makes system well-posed)
+        self.log_sum_weights = np.log(2 * D)
     
     def proposal(self, current, current_log_pdf, **kwargs):
         # mixture proposal with isotropic random walk

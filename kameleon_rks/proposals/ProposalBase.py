@@ -24,7 +24,7 @@ class ProposalBase():
         
         self.t = 0
     
-    def set_batch(self, Z):
+    def set_batch(self, Z, log_weights=None):
         pass
     
     @abstractmethod
@@ -52,7 +52,7 @@ class ProposalBase():
     def next_iteration(self):
         self.t += 1
         
-    def update(self, Z, num_new = 1):
+    def update(self, Z, num_new = 1, log_weights=None):
         pass
     
     def proposal(self, current, current_log_pdf,  **kwargs):

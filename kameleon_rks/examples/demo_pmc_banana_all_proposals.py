@@ -1,16 +1,17 @@
 from kameleon_rks.densities.banana import sample_banana, log_banana_pdf
 from kameleon_rks.examples.plotting import visualize_scatter
-from kameleon_rks.proposals.Kameleon import gamma_median_heuristic,\
+from kameleon_rks.proposals.Kameleon import gamma_median_heuristic, \
     OracleKameleon, Kameleon
-from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin,\
+from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin, \
     OracleKernelAdaptiveLangevin, KernelAdaptiveLangevin
-from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
+from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
     AdaptiveMetropolis
 from kameleon_rks.samplers.mini_pmc import mini_pmc
 from kameleon_rks.tools.log import Log
-from kernel_exp_family.estimators.lite.gaussian import KernelExpLiteGaussian
+from kernel_exp_family.estimators.finite.gaussian import KernelExpFiniteGaussian
 import matplotlib.pyplot as plt
 import numpy as np
+
 
 def one_over_sqrt_t_schedule(t):
     return 1. / np.sqrt(1 + t)
@@ -90,12 +91,13 @@ def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     schedule = one_over_sqrt_t_schedule
     acc_star = 0.574
     N = 500
+    m = 500
     Z = sample_banana(N=N, D=D, bananicity=0.03, V=100)
     
-    surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=N)
+    surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1, m=m, D=D)
     surrogate.fit(Z)
     
-    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, schedule, acc_star)
+    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule, acc_star)
     
     return instance
 
@@ -103,10 +105,10 @@ def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     step_size = 0.5
     schedule = one_over_sqrt_t_schedule
     acc_star = 0.574
-    n = 500
+    m = 500
     
-    surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=n)
-    instance = KernelAdaptiveLangevin(D, target_log_pdf, n, surrogate, step_size, schedule, acc_star)
+    surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
+    instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule, acc_star)
     
     return instance
 
@@ -123,8 +125,9 @@ if __name__ == '__main__':
 
     samplers = [
                 get_AdaptiveMetropolis_instance(D, target_log_pdf),
-                get_Kameleon_instance(D, target_log_pdf),
-                get_OracleKameleon_instance(D, target_log_pdf),
+                # the below two don't yet support weights in the update method
+#                 get_Kameleon_instance(D, target_log_pdf),
+#                 get_OracleKameleon_instance(D, target_log_pdf),
                 get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                 get_StaticMetropolis_instance(D, target_log_pdf),
                 get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),

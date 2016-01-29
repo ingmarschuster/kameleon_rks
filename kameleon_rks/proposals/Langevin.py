@@ -38,9 +38,12 @@ class StaticLangevin(StaticMetropolis):
         
         backward_grad = self.grad(proposal)
         backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
-        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
-                                            is_cholesky=True,
-                                            cov_scaling=self.step_size)
+        try:
+            backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
+                                                is_cholesky=True,
+                                                cov_scaling=self.step_size)
+        except Exception:
+            pass
         
         proposal_log_pdf = self.target_log_pdf(proposal)
         
@@ -62,6 +65,9 @@ class AdaptiveLangevin(StaticLangevin, AdaptiveMetropolis):
     def update(self, Z, num_new=1, log_weights=None):
         return AdaptiveMetropolis.update(self, Z, num_new, log_weights)
     
+    def set_batch(self, Z, log_weights=None):
+        return AdaptiveMetropolis.set_batch(self, Z, log_weights)
+    
 class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     """
     Implements gradient free kernel adaptive langevin proposal.
@@ -69,18 +75,25 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     Uses the kernel exponential family to estimate the gradient, useing oracle samples.
     """
     
-    def __init__(self, D, target_log_pdf, n, surrogate, step_size, schedule=None, acc_star=None):
+    def __init__(self, D, target_log_pdf, surrogate, step_size, schedule=None, acc_star=None):
         AdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate.grad, step_size, schedule, acc_star)
         
-        self.n = n
         self.surrogate = surrogate
-    
-    def set_batch(self, Z):
-        AdaptiveLangevin.set_batch(self, Z)
         
-        inds = np.random.permutation(len(Z))[:self.n]
-        logger.info("Fitting surrogate gradient model to %d/%d data." % (len(inds), len(Z)))
-        self.surrogate.fit(Z[inds])
+        assert surrogate.supports_weights()
+        assert surrogate.supports_update_fit()
+        
+    
+    def set_batch(self, Z, log_weights=None):
+        AdaptiveLangevin.set_batch(self, Z, log_weights)
+        
+        if log_weights is None:
+            weights = np.ones(len(Z))
+        else:
+            weights = np.exp(log_weights)
+        
+        logger.info("Fitting surrogate gradient model to %d data." % len(Z))
+        self.surrogate.fit(Z, weights)
     
 class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     """
@@ -89,20 +102,17 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     Uses the kernel exponential family to estimate the gradient.
     """
     
-    def __init__(self, D, target_log_pdf, n, surrogate, step_size, schedule=None, acc_star=None):
-        OracleKernelAdaptiveLangevin.__init__(self, D, target_log_pdf, n, surrogate, step_size, schedule, acc_star)
+    def __init__(self, D, target_log_pdf, surrogate, step_size, schedule=None, acc_star=None):
+        OracleKernelAdaptiveLangevin.__init__(self, D, target_log_pdf, surrogate, step_size, schedule, acc_star)
         
-    def update(self, Z, num_new=1):
-        OracleKernelAdaptiveLangevin.update(self, Z, num_new)
+    def update(self, Z, num_new=1, log_weights=None):
+        OracleKernelAdaptiveLangevin.update(self, Z, num_new, log_weights)
         
-        if self.schedule is not None and len(Z) >= self.n:
-            # generate updating probability
-            lmbda = self.schedule(self.t)
-            assert(lmbda < 1)
-            
-            if np.random.rand() < lmbda:
-                # update sub-sample of chain history
-                inds = np.random.permutation(len(Z))[:self.n]
-                logger.info("Fitting surrogate gradient model to %d/%d data." % (len(inds), len(Z)))
-                self.surrogate.fit(Z[inds])
-                logger.debug("Updated chain history sub-sample of size %d with probability lmbda=%.3f" % (self.n, lmbda))
+        if log_weights is None:
+            weights = np.ones(len(Z))
+        else:
+            weights = np.exp(log_weights)
+        
+        # update surrogate
+        logger.info("Updating surrogate gradient model using %d data." % len(Z))
+        self.surrogate.update_fit(Z[-num_new:], weights[-num_new:])

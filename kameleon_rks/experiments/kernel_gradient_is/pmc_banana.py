@@ -5,13 +5,13 @@ from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
 from kameleon_rks.examples.plotting import visualize_scatter
 from kameleon_rks.experiments.tools import store_results
 from kameleon_rks.proposals.Langevin import AdaptiveLangevin, \
-    OracleKernelAdaptiveLangevin
+    OracleKernelAdaptiveLangevin, KernelAdaptiveLangevin
 from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis
 from kameleon_rks.samplers.mini_pmc import mini_pmc
 from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample, \
     min_ess
 from kameleon_rks.tools.log import Log
-from kernel_exp_family.estimators.lite.gaussian import KernelExpLiteGaussian
+from kernel_exp_family.estimators.finite.gaussian import KernelExpFiniteGaussian
 from kernel_exp_family.estimators.parameter_search_bo import BayesOptSearch
 import numpy as np
 
@@ -23,7 +23,7 @@ def one_over_sqrt_t_schedule(t):
 
 def get_AdaptiveMetropolis_instance(D, target_log_pdf):
     
-    step_size = 500.
+    step_size = 1.
     schedule = one_over_sqrt_t_schedule
     gamma2 = 0.1
     instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule)
@@ -32,7 +32,7 @@ def get_AdaptiveMetropolis_instance(D, target_log_pdf):
 
 def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
     
-    step_size = 100.
+    step_size = 1.
     schedule = one_over_sqrt_t_schedule
     
     instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size, schedule)
@@ -43,25 +43,42 @@ def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
     
     step_size = 1.
     schedule = one_over_sqrt_t_schedule
+    m = 500
     N = 500
-    gamma2 = 0.1
+    Z = sample_banana(N, D, bananicity, V)
     
-    surrogate = KernelExpLiteGaussian(sigma=10, lmbda=0.001, D=D, N=N)
+    surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
+    surrogate.fit(Z)
     
     if False:
-        Z = sample_banana(N, D, bananicity, V)
         param_bounds = {'sigma': [-2, 3]}
         bo = BayesOptSearch(surrogate, Z, param_bounds)
         best_params = bo.optimize()
         surrogate.set_parameters_from_dict(best_params)
     
     logger.info("kernel exp family uses %s" % surrogate.get_parameters())
-    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, N, surrogate, step_size, gamma2, schedule)
+    instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule)
+    
+    return instance
+
+def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
+    
+    step_size = 1.
+    schedule = one_over_sqrt_t_schedule
+    m = 500
+    N = 500
+    Z = sample_banana(N, D, bananicity, V)
+    
+    surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
+    surrogate.fit(Z)
+    
+    logger.info("kernel exp family uses %s" % surrogate.get_parameters())
+    instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size, schedule)
     
     return instance
 
 if __name__ == '__main__':
-    Log.set_loglevel(20)
+    Log.set_loglevel(10)
     D = 2
     
     bananicity = 0.1
@@ -87,9 +104,11 @@ if __name__ == '__main__':
     num_repetitions = 30
     for _ in range(num_repetitions):
         samplers = [
-                    get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                     get_AdaptiveMetropolis_instance(D, target_log_pdf),
 #                     get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-    #                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                     get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                    get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                    
                     ]
             
         for sampler in samplers:
