@@ -129,7 +129,7 @@ if __name__ == '__main__':
             
             target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
             target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
-    
+
             samplers = [
 #                             get_StaticMetropolis_instance(D, target_log_pdf),
 #                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
@@ -169,8 +169,7 @@ if __name__ == '__main__':
                 if True:
                     import matplotlib.pyplot as plt
                     visualize_scatter(samples)
-                    plt.suptitle("%s" % \
-                                 (sampler.get_name()))
+                    plt.title("%s" % sampler.get_name())
                     
                     if isinstance(sampler, OracleKernelAdaptiveLangevin):
                         Xs = np.linspace(-30, 30, 50)
@@ -180,10 +179,8 @@ if __name__ == '__main__':
                     
                     if isinstance(sampler, StaticLangevin):
                         plt.figure()
-                        plt.title("Drift norms")
-                        plt.suptitle("%s" % \
-                                 (sampler.get_name()))
+                        plt.grid(True)
+                        plt.title("Drift norms %s" % sampler.get_name())
                         plt.hist(sampler.forward_drift_norms)
                         plt.show()
 
-        
