@@ -14,6 +14,8 @@ class StaticLangevin(StaticMetropolis):
         
         self.grad = grad
         self.manual_gradient_step_size = None
+        
+        self.forward_drift_norms = []
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
@@ -27,7 +29,13 @@ class StaticLangevin(StaticMetropolis):
         
         gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
-        forward_mu = current + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
+        forward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
+        
+        forward_drift_norm = np.linalg.norm(forward_drift)
+        logger.debug("Norm of forward drift: %.3f" % forward_drift_norm)
+        self.forward_drift_norms += [forward_drift_norm]
+        
+        forward_mu = current + forward_drift
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, self.L_C,
@@ -35,7 +43,9 @@ class StaticLangevin(StaticMetropolis):
                                             cov_scaling=self.step_size)
         
         backward_grad = self.grad(proposal)
-        backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
+        backward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
+        
+        backward_mu = proposal + backward_drift
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
                                             is_cholesky=True,
                                             cov_scaling=self.step_size)
