@@ -27,27 +27,18 @@ class StaticLangevin(StaticMetropolis):
         
         gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
-        drift =  0.5 * gradient_step_size * forward_grad# self.L_C.dot(self.L_C.T).dot()
-        #print(np.linalg.norm(drift))
-        forward_mu = current + drift
+        forward_mu = current + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
         forward_log_prob = log_gaussian_pdf(proposal, forward_mu, self.L_C,
                                             is_cholesky=True,
                                             cov_scaling=self.step_size)
         
-        try:
-            backward_grad = self.grad(proposal)
-            backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
-            backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
-                                                is_cholesky=True,
-                                                cov_scaling=self.step_size)
-        except Exception:
-            print "WARNING: MCMC would break, as backward move is undefined"
-            backward_mu = np.zeros_like(forward_mu) + np.nan
-            backward_log_prob = np.nan
-            pass
-        
+        backward_grad = self.grad(proposal)
+        backward_mu = proposal + 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
+        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
+                                            is_cholesky=True,
+                                            cov_scaling=self.step_size)
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         result_kwargs = {'previous_backward_grad': backward_grad}
