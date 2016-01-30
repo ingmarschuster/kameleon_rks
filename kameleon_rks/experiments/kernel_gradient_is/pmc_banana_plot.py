@@ -1,37 +1,55 @@
 from matplotlib.lines import Line2D
 import os
 
-from kameleon_rks.experiments.latex_plot_init import plt
+from kameleon_rks.experiments.kernel_gradient_is.pmc_banana import result_fname
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from kameleon_rks.experiments.kernel_gradient_is.pmc_banana import gen_result_fname
 
 
-result_fname = gen_result_fname()
+# from kameleon_rks.experiments.latex_plot_init import plt
 result_fname_base = os.path.splitext(result_fname)[0]
 
 sampler_names = [
+                 'StaticMetropolis',
                  'AdaptiveMetropolis',
-                 'AdaptiveLangevin',
-                'OracleKernelAdaptiveLangevin'
+                 'StaticLangevin',
+                'AdaptiveLangevin',
+                 'OracleKernelAdaptiveLangevin'
                  ]
+fields = [
+        'mmd',
+            'rmse_mean',
+#           'rmse_var',
+        'ess',
+          ]
+
 sampler_plot_names = {
-                  'AdaptiveMetropolis': 'PMC',
-                  'AdaptiveLangevin': 'GIS',
-                  'OracleKernelAdaptiveLangevin': 'KGIS',
+                  'StaticMetropolis': 'SM',
+                  'AdaptiveMetropolis': 'AM',
+                  'StaticLangevin': 'SGIS',
+                  'AdaptiveLangevin': 'AGIS',
+                  'OracleKernelAdaptiveLangevin': 'OKAGIS',
                   }
 sampler_colors = {
-                  'AdaptiveMetropolis': 'blue',
-                  'AdaptiveLangevin': 'red',
-                  'OracleKernelAdaptiveLangevin': 'green',
+                  'StaticMetropolis': 'blue',
+                  'AdaptiveMetropolis': 'red',
+                  'StaticLangevin': 'green',
+                  'AdaptiveLangevin': 'yellow',
+                  'OracleKernelAdaptiveLangevin': 'magenta',
+                  
                   }
-fields = ['mmd', 'rmse_mean', 'rmse_var', 'ess']
 field_plot_names = {
                     'mmd': 'MMD to benchmark sample',
                     'rmse_mean': 'RMSE mean',
                     'rmse_var': 'RMSE variance',
-                    'ess': 'ESS per population sample'
+                    'ess': 'ESS per population sample',
+                    'norm_of_mean': "Norm of mean",
                     }
+
+y_scales = {
+#             'mmd': 'log'
+            }
 
 
 def kwargs_gen(**kwargs):
@@ -44,7 +62,7 @@ conditions = kwargs_gen(
                         )
 
 # x-axis of plot
-x_field = 'num_population'
+x_field = 'population_size'
 x_field_values = []
 
 df = pd.read_csv(result_fname, index_col=0)
@@ -99,6 +117,9 @@ for field in fields:
     plt.legend(lines, [sampler_plot_names[sampler_name] for sampler_name in sampler_names])
     plt.xlabel("Population size")
     plt.ylabel(field_plot_names[field])
+    
+    if field in y_scales:
+        plt.yscale(y_scales[field])
     
     plt.grid(True)
     plt.tight_layout()
