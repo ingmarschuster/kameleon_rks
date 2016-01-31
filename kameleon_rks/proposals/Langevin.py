@@ -13,7 +13,10 @@ class StaticLangevin(StaticMetropolis):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
         self.grad = grad
+        
+        # members hidden from constructor
         self.manual_gradient_step_size = None
+        self.do_preconditioning = False
         
         self.forward_drift_norms = []
     
@@ -29,7 +32,10 @@ class StaticLangevin(StaticMetropolis):
         
         gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
-        forward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
+        if self.do_preconditioning:
+            forward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
+        else:
+            forward_drift = 0.5 * gradient_step_size * forward_grad
         
         forward_drift_norm = np.linalg.norm(forward_drift)
         logger.debug("Norm of forward drift: %.3f" % forward_drift_norm)
@@ -43,7 +49,11 @@ class StaticLangevin(StaticMetropolis):
                                             cov_scaling=self.step_size)
         
         backward_grad = self.grad(proposal)
-        backward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
+        
+        if self.do_preconditioning:
+            backward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
+        else:
+            backward_drift = 0.5 * gradient_step_size * backward_grad
         
         backward_mu = proposal + backward_drift
         backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
