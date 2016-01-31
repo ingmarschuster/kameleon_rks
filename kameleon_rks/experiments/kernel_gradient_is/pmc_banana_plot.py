@@ -59,6 +59,7 @@ conditions = kwargs_gen(
                           D=2,
                           bananicity=0.1,
                           V=100,
+                          num_iter_per_particle=500
                         )
 
 # x-axis of plot
