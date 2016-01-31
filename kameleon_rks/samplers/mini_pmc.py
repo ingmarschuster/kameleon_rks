@@ -47,7 +47,7 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             logger.debug(log_str)
         if stage == 0:
             prev = np.array([start] * pop_size)
-            prev_logp = np.array([transition_kernel.target_log_pdf(start)] * pop_size)
+            prev_logp = np.array([None] * pop_size)
 
         range_it = range(start_it, start_it + pop_size)
         for it in range_it:
@@ -61,21 +61,17 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
 
-            #the following is a simple IS equivalent of a MH step
-            prev_idx = system_res(range(2), [logweights[stage, prop_idx], current_log_pdf - backw_logpdf], resampled_size=1 )[0]
-            if prev_idx == 0:
-                #print('move',prop_target_logpdf[stage, prop_idx])
-                prev[prev_idx] = proposals[stage, prop_idx]
-                prev_logp[prev_idx] = prop_target_logpdf[stage, prop_idx]
-
-
-
-        res_idx = system_res(range(pop_size), logweights[stage, :],)
-        samples[range_it] = proposals[stage, res_idx]
-        log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
-        
-#        prev = samples[range_it] 
-#        prev_logp = log_pdf[range_it]
+            if stage > 0:   
+                res_idx = system_res(range(pop_size*2), logweights[stage-1:stage+1, :].flatten(), pop_size)
+                samples[range_it] = np.vstack(proposals[stage-1:stage+1])[res_idx]
+                log_pdf[range_it] = np.hstack(prop_target_logpdf[stage-1:stage+1])[res_idx]
+            else:
+                res_idx = system_res(range(pop_size), logweights[stage, :],)
+                samples[range_it] = proposals[stage, res_idx]
+                log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
+                
+            prev = samples[range_it] 
+            prev_logp = log_pdf[range_it]
 
         
         
