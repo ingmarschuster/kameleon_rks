@@ -113,7 +113,7 @@ if __name__ == "__main__":
         return instance
     
 if __name__ == '__main__':
-    Log.set_loglevel(10)
+    Log.set_loglevel(20)
     D = 2
     
     bananicity = 0.1
