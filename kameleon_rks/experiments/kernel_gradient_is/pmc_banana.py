@@ -123,7 +123,7 @@ if __name__ == '__main__':
     true_var[0] = 100
     true_var[1] = 200
     
-    num_iter = 5000
+    num_iter_per_particle = 500
     population_sizes = [5, 10, 20, 50, 100, 200, 500]
     num_repetitions = 30
     
@@ -134,6 +134,7 @@ if __name__ == '__main__':
     
     for _ in range(num_repetitions):
         for population_size in population_sizes:
+            num_iter = population_size * num_iter_per_particle
             start = np.zeros(D)
             
             target_log_pdf = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=False)
@@ -166,7 +167,7 @@ if __name__ == '__main__':
                               bananicity=bananicity,
                               V=V,
                               population_size=population_size,
-                              num_iter=num_iter,
+                              num_iter_per_particle=num_iter_per_particle,
                               
                               mmd=mmd,
                               ess=ess,
