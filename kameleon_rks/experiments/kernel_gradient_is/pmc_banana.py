@@ -16,7 +16,7 @@ if __name__ == "__main__":
     from kameleon_rks.proposals.Langevin import StaticLangevin
     from kameleon_rks.proposals.Metropolis import StaticMetropolis
     from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis
-    from kameleon_rks.proposals.Langevin import OracleKernelAdaptiveLangevin,\
+    from kameleon_rks.proposals.Langevin import OracleKernelAdaptiveLangevin, \
                                     KernelAdaptiveLangevin
     from kameleon_rks.samplers.mini_pmc import mini_pmc
     from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample, \
@@ -54,6 +54,10 @@ if __name__ == "__main__":
         step_size = 1.
         instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size)
         
+        # make sure that the gradient is downscaled
+        # to avoid preconditioning making the drift diverge
+        instance.manual_gradient_step_size = 0.1
+        
         return instance
     
     def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
@@ -86,10 +90,13 @@ if __name__ == "__main__":
             
         instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         
+        # make sure that the gradient is downscaled
+        # to avoid preconditioning making the drift diverge
+        instance.manual_gradient_step_size = 0.1
+        
         return instance
     
     def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
-        
         step_size = 1.
         m = 100
         
@@ -97,8 +104,11 @@ if __name__ == "__main__":
         surrogate.sum_weights = np.exp(logsumexp([target_log_pdf(x) for x in sample_banana(m, D, bananicity, V)]))
         logger.info("kernel exp family uses %s" % surrogate.get_parameters())
         
-        # no schedule means no step size adaptation
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
+
+        # make sure that the gradient is downscaled
+        # to avoid preconditioning making the drift diverge
+        instance.manual_gradient_step_size = 0.1
         
         return instance
     
@@ -113,9 +123,8 @@ if __name__ == '__main__':
     true_var[0] = 100
     true_var[1] = 200
     
-    num_iter = 2000
+    num_iter = 5000
     population_sizes = [5, 10, 20, 50, 100, 200, 500]
-    population_sizes = [200]
     num_repetitions = 30
     
     rng_state = np.random.get_state()
@@ -132,11 +141,11 @@ if __name__ == '__main__':
 
             samplers = [
                             get_StaticMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
                             get_StaticLangevin_instance(D, target_log_pdf, target_grad),
-#                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-#                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-    #                         get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                            get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                             get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                         
                         ]
                 
@@ -166,7 +175,7 @@ if __name__ == '__main__':
                               time_taken=time_taken,
                               )
         
-                if True:
+                if False:
                     import matplotlib.pyplot as plt
                     visualize_scatter(samples)
                     plt.title("%s" % sampler.get_name())

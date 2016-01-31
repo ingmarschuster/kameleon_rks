@@ -16,7 +16,7 @@ class StaticLangevin(StaticMetropolis):
         
         # members hidden from constructor
         self.manual_gradient_step_size = None
-        self.do_preconditioning = False
+        self.do_preconditioning = True
         
         self.forward_drift_norms = []
     
@@ -131,9 +131,11 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
         logger.debug("Updating surrogate gradient model using %d data." % num_new)
         self.surrogate.update_fit(Z[-num_new:], weights[-num_new:])
         
-        import matplotlib.pyplot as plt
-        print "sum_weights:", self.surrogate.sum_weights
-        Xs = np.linspace(-30, 30, 50)
-        Ys = np.linspace(-20, 40, 50)
-        visualise_fit(self.surrogate, Z, Xs, Ys)
-        plt.show()
+        if False:
+            # debug code to visualise intermediate fits
+            import matplotlib.pyplot as plt
+            print "sum_weights:", self.surrogate.sum_weights
+            Xs = np.linspace(-30, 30, 50)
+            Ys = np.linspace(-20, 40, 50)
+            visualise_fit(self.surrogate, Z, Xs, Ys)
+            plt.show()
