@@ -44,7 +44,6 @@ field_plot_names = {
                     'rmse_mean': 'RMSE mean',
                     'rmse_var': 'RMSE variance',
                     'ess': 'ESS per population sample',
-                    'norm_of_mean': "Norm of mean",
                     }
 
 y_scales = {
