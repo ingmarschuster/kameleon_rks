@@ -131,11 +131,11 @@ if __name__ == '__main__':
             target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
 
             samplers = [
-#                             get_StaticMetropolis_instance(D, target_log_pdf),
+                            get_StaticMetropolis_instance(D, target_log_pdf),
 #                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
                             get_StaticLangevin_instance(D, target_log_pdf, target_grad),
-                            get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+#                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                         get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                         
                         ]
@@ -175,12 +175,11 @@ if __name__ == '__main__':
                         Xs = np.linspace(-30, 30, 50)
                         Ys = np.linspace(-20, 40, 50)
                         visualise_fit(sampler.surrogate, samples, Xs, Ys)
-                        plt.show()
                     
                     if isinstance(sampler, StaticLangevin):
                         plt.figure()
                         plt.grid(True)
                         plt.title("Drift norms %s" % sampler.get_name())
                         plt.hist(sampler.forward_drift_norms)
-                        plt.show()
-
+                    
+                    plt.show()
