@@ -61,17 +61,13 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
 
-            if stage > 0:   
-                res_idx = system_res(range(pop_size*2), logweights[stage-1:stage+1, :].flatten(), pop_size)
-                samples[range_it] = np.vstack(proposals[stage-1:stage+1])[res_idx]
-                log_pdf[range_it] = np.hstack(prop_target_logpdf[stage-1:stage+1])[res_idx]
-            else:
-                res_idx = system_res(range(pop_size), logweights[stage, :],)
-                samples[range_it] = proposals[stage, res_idx]
-                log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
+
+        res_idx = system_res(range(pop_size), logweights[stage, :],)
+        samples[range_it] = proposals[stage, res_idx]
+        log_pdf[range_it] = prop_target_logpdf[stage, res_idx]
                 
-            prev = samples[range_it] 
-            prev_logp = log_pdf[range_it]
+        prev = samples[range_it] 
+        prev_logp = log_pdf[range_it]
 
         
         
