@@ -42,7 +42,6 @@ if __name__ == "__main__":
         gamma2 = 0.1
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
         
-        
         return instance
     
     def get_StaticLangevin_instance(D, target_log_pdf, grad):
@@ -54,8 +53,7 @@ if __name__ == "__main__":
     def get_AdaptiveLangevin_instance(D, target_log_pdf, grad):
         step_size = 1.
         instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size)
-        instance.do_preconditioning=True
-        instance.manual_gradient_step_size=0.1
+        
         return instance
     
     def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
@@ -117,7 +115,7 @@ if __name__ == '__main__':
     
     num_iter = 2000
     population_sizes = [5, 10, 20, 50, 100, 200, 500]
-    population_sizes = [50]
+    population_sizes = [200]
     num_repetitions = 30
     
     rng_state = np.random.get_state()
@@ -133,10 +131,10 @@ if __name__ == '__main__':
             target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
 
             samplers = [
-#                            get_StaticMetropolis_instance(D, target_log_pdf),
+                            get_StaticMetropolis_instance(D, target_log_pdf),
 #                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
-#                            get_StaticLangevin_instance(D, target_log_pdf, target_grad),
-                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                            get_StaticLangevin_instance(D, target_log_pdf, target_grad),
+#                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
 #                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
     #                         get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                         
@@ -178,7 +176,7 @@ if __name__ == '__main__':
                         Ys = np.linspace(-20, 40, 50)
                         visualise_fit(sampler.surrogate, samples, Xs, Ys)
                     
-                    if False and isinstance(sampler, StaticLangevin):
+                    if isinstance(sampler, StaticLangevin):
                         plt.figure()
                         plt.grid(True)
                         plt.title("Drift norms %s" % sampler.get_name())
