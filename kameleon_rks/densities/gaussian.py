@@ -3,6 +3,45 @@ import scipy.stats as stats
 from kameleon_rks.densities.linalg import pdinv, diag_dot
 import numpy as np
 
+def log_gaussian_pdf_multiple(X, mu=None, Sigma=None, is_cholesky=False, compute_grad=False, cov_scaling=1.):
+    D = X.shape[1]
+    
+    if mu is None:
+        mu = np.zeros(D)
+        
+    assert len(mu) == D
+
+    if Sigma is not None:
+        assert D == Sigma.shape[0]
+        assert D == Sigma.shape[1]
+    
+        if is_cholesky is False:
+            L = np.linalg.cholesky(Sigma)
+        else:
+            L = Sigma
+        
+        # solve Y=K^(-1)(X-mu) = L^(-T)L^(-1)(X-mu)
+        X = np.array(X - mu)
+        
+        Y = solve_triangular(L, X.T, lower=True)
+        Y = solve_triangular(L.T, Y, lower=False) / cov_scaling
+        Y = Y.T
+        cov_L_diag = np.diag(L)
+    else:
+        # assume isotropic covariance, solve y=K^(-1)x
+        Y = np.array(X - mu) / cov_scaling
+        
+        cov_L_diag = np.ones(D)
+        
+    if not compute_grad:
+        log_determinant_part = -np.sum(np.log(np.sqrt(cov_scaling) * cov_L_diag))
+        quadratic_part = -0.5 * np.sum(X * Y, axis=1)
+        const_part = -0.5 * D * np.log(2 * np.pi)
+        
+        return const_part + log_determinant_part + quadratic_part
+    else:
+        return -Y
+
 def log_gaussian_pdf(x, mu=None, Sigma=None, is_cholesky=False, compute_grad=False, cov_scaling=1.):
     D = len(x)
     
