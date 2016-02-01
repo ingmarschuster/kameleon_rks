@@ -123,6 +123,7 @@ if __name__ == '__main__':
     true_var[1] = 20
     true_cov = np.diag(true_var)
     
+
     num_iter_per_particle = 200
     population_sizes = [5, 10, 25, 50, 100, 200]
     
@@ -157,6 +158,7 @@ if __name__ == '__main__':
                 samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
                 time_taken = time.time() - start_time
                 
+
                 mmd = mmd_to_benchmark_sample(samples, benchmark_sample, degree=3)
                 rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
                 rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
@@ -177,7 +179,7 @@ if __name__ == '__main__':
                               time_taken=time_taken,
                               )
         
-                if False:
+                if True:
                     import matplotlib.pyplot as plt
                     visualize_scatter(samples)
                     plt.title("%s" % sampler.get_name())

@@ -10,7 +10,7 @@ import numpy as np
 
 logger = Log.get_logger()
 
-def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None, weighted_update=True, rao_blackwell_generation=True):
+def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None, weighted_update=True, rao_blackwell_generation=True, resample_at_end = False):
     assert(len(start.shape) <= 2)
 
     
@@ -72,13 +72,18 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             
             # generate proposal and acceptance probability
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
+            logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
         if rao_blackwell_generation:
-#            print('rb')
+            print('rb')
             try:
                 all_prop_logpdfs = np.array([transition_kernel.proposal_log_pdf(prev[it - start_it], proposals[stage, :]) for it in range_it])
                 prop_prob_logpdf[stage, :] = logsumexp(all_prop_logpdfs, 0)
             except:
                 assert()
+        else:
+            #print('norb')
+            #assert()
+            np.all(logweights[stage, :] == prop_target_logpdf[stage, :] - prop_prob_logpdf[stage, :])
         logweights[stage, :] = prop_target_logpdf[stage, :] - prop_prob_logpdf[stage, :]
 
 
@@ -94,10 +99,15 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
         # update transition kernel, might do nothing
         transition_kernel.next_iteration()
         if weighted_update:
-            transition_kernel.update(proposals[stage, :], pop_size, logweights[stage, :]) 
+            transition_kernel.update(np.vstack(proposals[:stage+1, :]), pop_size, np.hstack(logweights[:stage+1, :])) 
         else:
             transition_kernel.update(samples[:range_it[-1]+1], pop_size)
-        
+    
+    if resample_at_end:
+        #FIXME: the last stage might not have drawn the full set of samples
+        all_lweights = np.hstack(logweights[:stage+1, :])
+        res_idx = system_res(range(it+1), all_lweights)
+        (samples, log_pdf) = (np.vstack(proposals[:stage+1, :])[res_idx], all_lweights[res_idx])
         
     # recall it might be less than last iterations due to time budget
-    return samples[:it], log_pdf[:it], times[:it]
+    return samples, log_pdf, times[:it]
