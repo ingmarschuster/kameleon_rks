@@ -62,11 +62,11 @@ class StaticLangevin(StaticMetropolis):
                                                 cov_scaling=self.step_size)
         except Exception as e:
             logger.error("Could not compute backward probability.")
-            logger.error("current:", current)
-            logger.error("proposal:", proposal)
-            logger.error("backward_drift:", backward_drift)
-            logger.error("L_C:", self.L_C)
-            logger.error("mu:", self.mu)
+            logger.error("current: %s" % str(current))
+            logger.error("proposal: %s" % str(proposal))
+            logger.error("backward_drift: %s" % str(backward_drift))
+            logger.error("L_C: %s" % str(self.L_C))
+            logger.error("mu: %s" % str(self.mu))
             
             raise e
             
