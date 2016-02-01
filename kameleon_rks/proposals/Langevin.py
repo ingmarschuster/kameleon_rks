@@ -56,9 +56,20 @@ class StaticLangevin(StaticMetropolis):
             backward_drift = 0.5 * gradient_step_size * backward_grad
         
         backward_mu = proposal + backward_drift
-        backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
-                                            is_cholesky=True,
-                                            cov_scaling=self.step_size)
+        try:
+            backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
+                                                is_cholesky=True,
+                                                cov_scaling=self.step_size)
+        except Exception as e:
+            logger.error("Could not compute backward probability.")
+            logger.error("current:", current)
+            logger.error("proposal:", proposal)
+            logger.error("backward_drift:", backward_drift)
+            logger.error("L_C:", self.L_C)
+            logger.error("mu:", self.mu)
+            
+            raise e
+            
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         result_kwargs = {'previous_backward_grad': backward_grad}
