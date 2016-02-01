@@ -58,11 +58,12 @@ class AdaptiveMetropolis(StaticMetropolis):
         
         self.gamma2 = gamma2
         
-        # assume that we have observed D samples so far (makes system well-posed)
-        # these have zero mean and covariance gamma2*I
-        self.mu = np.zeros(D)
+        # assume that we have observed fake samples (makes system well-posed)
+        # these have covariance gamma2*I, which is a regulariser
+        # the mean and log_sum_weights however, is taken from the first set of samples in update
+        self.mu = None
         self.L_C = np.eye(D) * np.sqrt(gamma2)
-        self.log_sum_weights = np.log(D)
+        self.log_sum_weights = None
     
     def proposal(self, current, current_log_pdf, **kwargs):
         # mixture proposal with isotropic random walk
@@ -70,21 +71,21 @@ class AdaptiveMetropolis(StaticMetropolis):
             use_adaptive_proposal = False
         else:
             use_adaptive_proposal = True
-        
+         
         if use_adaptive_proposal:
             logger.debug("Proposal with learned covariance")
             return StaticMetropolis.proposal(self, current, current_log_pdf, **kwargs)
         else:
             if current_log_pdf is None:
                 current_log_pdf = self.target_log_pdf(current)
-            
+             
             logger.debug("Proposal with isotropic covariance")
             proposal = sample_gaussian(N=1, mu=current, cov_scaling=self.step_size)[0]
             forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, cov_scaling=self.step_size)
-            
+             
             proposal_log_pdf = self.target_log_pdf(proposal)
             results_kwargs = {}
-                
+                 
             # probability of proposing current when would be sitting at proposal is symmetric
             return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
 
@@ -103,6 +104,14 @@ class AdaptiveMetropolis(StaticMetropolis):
         else:
             log_weights = np.zeros(len(Z))
         
+        # nothing observed yet, use average of all observed weights so far
+        if self.log_sum_weights is None:
+            # this is log mean exp
+            self.log_sum_weights = logsumexp(log_weights) - np.log(len(log_weights))
+        
+        if self.mu is None:
+            self.mu = np.mean(Z, axis=0)
+        
         # generate lmbdas that correspond to weighted averages
         lmbdas = log_weights_to_lmbdas(self.log_sum_weights, log_weights[-num_new:])
         
@@ -112,3 +121,46 @@ class AdaptiveMetropolis(StaticMetropolis):
         # update weights
         stacked = np.hstack((self.log_sum_weights, log_weights[-num_new:]))
         self.log_sum_weights = logsumexp(stacked)
+
+
+class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
+    """
+    Implements an independent Gaussian proposal with given parameters.
+    
+    However, stores mean and covariance in the same fashion as AdaptiveMetropolis
+    for debugging purposes, and debug outputs them
+    
+    Schedule and acc_star are ignored, step size is always 1.
+    """
+    
+    def __init__(self, D, target_log_pdf, gamma2, proposal_mu, proposal_L_C):
+        AdaptiveMetropolis.__init__(self, D, target_log_pdf, 1., gamma2)
+    
+        self.proposal_mu = proposal_mu
+        self.proposal_L_C = proposal_L_C
+    
+    def proposal(self, current, current_log_pdf, **kwargs):
+        if current_log_pdf is None:
+            current_log_pdf = self.target_log_pdf(current)
+        
+        proposal = sample_gaussian(N=1, mu=self.proposal_mu, Sigma=self.proposal_L_C,
+                                   is_cholesky=True, cov_scaling=self.step_size)[0]
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=self.proposal_mu,
+                                              Sigma=self.proposal_L_C, is_cholesky=True,
+                                              cov_scaling=self.step_size)
+        backw_backw_logprob = log_gaussian_pdf(current, mu=np.zeros(self.D),
+                                              Sigma=self.proposal_L_C, is_cholesky=True, cov_scaling=self.step_size)
+
+        proposal_log_pdf = self.target_log_pdf(proposal)
+        
+        results_kwargs = {}
+        
+        # probability of proposing current when would be sitting at proposal is symmetric
+        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, backw_backw_logprob, results_kwargs
+
+    def update(self, Z, num_new, log_weights):
+        AdaptiveMetropolis.update(self, Z, num_new, log_weights)
+        cov = np.dot(self.L_C, self.L_C.T)
+
+        logger.debug("mu: %s" % str(self.mu))
+        logger.debug("cov: %s" % str(cov))
