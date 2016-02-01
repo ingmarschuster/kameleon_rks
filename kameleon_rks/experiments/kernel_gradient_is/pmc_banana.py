@@ -111,13 +111,14 @@ if __name__ == '__main__':
     true_var[0] = 100
     true_var[1] = 200
     
-    num_iter_per_particle = 500
-    population_sizes = [5, 10, 20, 50, 100, 200, 500]
+    num_iter_per_particle = 100
+    population_sizes = [5, 10, 20, 50, 100, 200]
+    
     num_repetitions = 30
     
     rng_state = np.random.get_state()
     np.random.seed(0)
-    benchmark_sample = sample_banana(5000, D, bananicity, V)
+    benchmark_sample = sample_banana(1000, D, bananicity, V)
     np.random.set_state(rng_state)
     
     for _ in range(num_repetitions):
