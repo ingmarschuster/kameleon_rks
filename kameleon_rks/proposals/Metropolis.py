@@ -26,8 +26,17 @@ class StaticMetropolis(ProposalBase):
         
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
-        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
-                                              Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
+        try:
+            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
+                                                  Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
+        except Exception as e:
+            logger.error("Could not compute forward probability.")
+            logger.error("current:", current)
+            logger.error("proposal:", proposal)
+            logger.error("L_C:", self.L_C)
+            logger.error("mu:", self.mu)
+            
+            raise e
 
         proposal_log_pdf = self.target_log_pdf(proposal)
         
@@ -49,10 +58,11 @@ class AdaptiveMetropolis(StaticMetropolis):
         
         self.gamma2 = gamma2
         
+        # assume that we have observed D samples so far (makes system well-posed)
+        # these have zero mean and covariance gamma2*I
         self.mu = np.zeros(D)
-        
-        # assume that we have observed 2*D samples so far (makes system well-posed)
-        self.log_sum_weights = np.log(2 * D)
+        self.L_C = np.eye(D) * np.sqrt(gamma2)
+        self.log_sum_weights = np.log(D)
     
     def proposal(self, current, current_log_pdf, **kwargs):
         # mixture proposal with isotropic random walk
@@ -78,17 +88,12 @@ class AdaptiveMetropolis(StaticMetropolis):
             # probability of proposing current when would be sitting at proposal is symmetric
             return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
 
-    def set_batch(self, Z, log_weights=None):
-        if log_weights is None:
-            weights = np.ones(len(Z))
-            log_weights = np.log(weights)
-        else:
-            weights = np.exp(log_weights)
-        
-        self.mu = np.average(Z, axis=0, weights=weights)
-        cov = np.cov(Z.T, aweights=weights)
-        self.L_C = np.linalg.cholesky(cov)
-        self.log_sum_weights = logsumexp(log_weights)
+    def set_batch(self, Z):
+        # override streaming solution
+        self.mu = np.mean(Z, axis=0)
+        cov = np.cov(Z.T)
+        self.L_C = np.linalg.cholesky(cov + np.eye(self.gamma2))
+        self.log_sum_weights = np.log(len(Z))
         
     def update(self, Z, num_new=1, log_weights=None):
         assert(len(Z) >= num_new)
