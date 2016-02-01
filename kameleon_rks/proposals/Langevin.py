@@ -90,8 +90,8 @@ class AdaptiveLangevin(StaticLangevin, AdaptiveMetropolis):
     def update(self, Z, num_new=1, log_weights=None):
         return AdaptiveMetropolis.update(self, Z, num_new, log_weights)
     
-    def set_batch(self, Z, log_weights=None):
-        return AdaptiveMetropolis.set_batch(self, Z, log_weights)
+    def set_batch(self, Z):
+        return AdaptiveMetropolis.set_batch(self, Z)
     
 class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
     """
