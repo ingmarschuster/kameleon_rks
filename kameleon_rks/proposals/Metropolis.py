@@ -1,6 +1,7 @@
 from scipy.misc.common import logsumexp
 
-from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
+from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf, \
+    log_gaussian_pdf_multiple
 from kameleon_rks.proposals.ProposalBase import ProposalBase
 from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
     update_mean_cov_L_lmbda
@@ -21,12 +22,9 @@ class StaticMetropolis(ProposalBase):
         self.L_C = np.linalg.cholesky(np.eye(D))
     
     def proposal_log_pdf(self, current, proposals):
-        log_pdfs = np.zeros(len(proposals))
-        for i, proposal in enumerate(proposals):
-            log_pdfs[i] = log_gaussian_pdf(proposal, mu=current,
-                                           Sigma=self.L_C, is_cholesky=True,
-                                           cov_scaling=self.step_size)
-        
+        log_pdfs = log_gaussian_pdf_multiple(proposals, mu=current,
+                                             Sigma=self.L_C, is_cholesky=True,
+                                             cov_scaling=self.step_size)
         return log_pdfs
     
     def proposal(self, current, current_log_pdf, **kwargs):
