@@ -128,18 +128,18 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
         OracleKernelAdaptiveLangevin.update(self, Z, num_new, log_weights)
         
         if log_weights is None:
-            weights = np.ones(len(Z))
-        else:
-            weights = np.exp(log_weights)
+            log_weights = np.log(np.ones(len(Z)))
         
         # update surrogate
         logger.debug("Updating surrogate gradient model using %d data." % num_new)
-        self.surrogate.update_fit(Z[-num_new:], weights[-num_new:])
+#         self.surrogate.update_fit(Z[-num_new:], log_weights[-num_new:])
+        self.surrogate.fit(Z[-num_new:], log_weights[-num_new:])
         
-        if False:
+        
+        if True:
             # debug code to visualise intermediate fits
             import matplotlib.pyplot as plt
-            print "sum_weights:", self.surrogate.sum_weights
+            print "sum_weights:", self.surrogate.log_sum_weights
             Xs = np.linspace(-30, 30, 50)
             Ys = np.linspace(-20, 40, 50)
             visualise_fit(self.surrogate, Z, Xs, Ys)
