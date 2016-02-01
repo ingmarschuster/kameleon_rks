@@ -1,5 +1,7 @@
 import os
 
+from kameleon_rks.proposals.Metropolis import AdaptiveIndependentMetropolis
+
 
 result_fname = os.path.join(os.path.expanduser('~'), "kameleon_rks_results", "kernel_gradient_is", os.path.splitext(os.path.basename(__file__))[0] + ".txt")
 
@@ -22,6 +24,7 @@ if __name__ == "__main__":
     from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample, \
         min_ess
     from kameleon_rks.tools.log import Log
+    from kernel_exp_family.tools.log import Log as kernel_exp_family_log
     from kernel_exp_family.estimators.finite.gaussian import KernelExpFiniteGaussian
     from kernel_exp_family.estimators.parameter_search_bo import BayesOptSearch
     import numpy as np
@@ -41,6 +44,15 @@ if __name__ == "__main__":
         step_size = 1.
         gamma2 = 0.1
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
+        
+        return instance
+        
+    def get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf):
+        gamma2 = 0.1
+        proposal_mu = true_mean
+        proposal_L_C = np.linalg.cholesky(true_cov * 2)
+        
+        instance = AdaptiveIndependentMetropolis(D, target_log_pdf, gamma2, proposal_mu, proposal_L_C)
         
         return instance
     
@@ -90,10 +102,9 @@ if __name__ == "__main__":
     
     def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
         step_size = 1.
-        m = 100
+        m = 500
         
         surrogate = KernelExpFiniteGaussian(sigma=10, lmbda=1., m=m, D=D)
-        surrogate.sum_weights = np.exp(logsumexp([target_log_pdf(x) for x in sample_banana(m, D, bananicity, V)]))
         logger.info("kernel exp family uses %s" % surrogate.get_parameters())
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
@@ -101,24 +112,27 @@ if __name__ == "__main__":
         return instance
     
 if __name__ == '__main__':
-    Log.set_loglevel(20)
+    Log.set_loglevel(10)
+    kernel_exp_family_log.set_loglevel(10)
+    
     D = 2
     
-    bananicity = 0.1
+    bananicity = 0.03
     V = 100
     true_mean = np.zeros(D)
     true_var = np.ones(D)
     true_var[0] = 100
-    true_var[1] = 200
+    true_var[1] = 20
+    true_cov = np.diag(true_var)
     
     num_iter_per_particle = 100
     population_sizes = [5, 10, 20, 50, 100, 200]
     
     num_repetitions = 30
     
+    num_benchmark_samples = 1000
     rng_state = np.random.get_state()
     np.random.seed(0)
-    num_benchmark_samples = 1000
     benchmark_sample = sample_banana(num_benchmark_samples, D, bananicity, V)
     np.random.set_state(rng_state)
     
@@ -133,6 +147,7 @@ if __name__ == '__main__':
             samplers = [
                             get_StaticMetropolis_instance(D, target_log_pdf),
                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
                             get_StaticLangevin_instance(D, target_log_pdf, target_grad),
                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
@@ -148,7 +163,7 @@ if __name__ == '__main__':
                 mmd = mmd_to_benchmark_sample(samples, benchmark_sample, degree=3)
                 ess = min_ess(samples)
                 rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
-                rmse_var = np.mean((true_var - np.var(samples, 0)) ** 2)
+                rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
                 
                 logger.info("Storing results under %s" % result_fname)
                 store_results(result_fname,
@@ -159,11 +174,11 @@ if __name__ == '__main__':
                               num_benchmark_samples=num_benchmark_samples,
                               population_size=population_size,
                               num_iter_per_particle=num_iter_per_particle,
-                              
+                               
                               mmd=mmd,
                               ess=ess,
                               rmse_mean=rmse_mean,
-                              rmse_var=rmse_var,
+                              rmse_var=rmse_cov,
                               time_taken=time_taken,
                               )
         
