@@ -140,7 +140,7 @@ def mmd_to_benchmark_sample(sample1, sample2, degree):
     """
     Compute the (biased) MMD between two samples
     """
-    K11 = poly_kernel(sample1, sample1, degree)
-    K22 = poly_kernel(sample2, sample2, degree)
-    K12 = poly_kernel(sample1, sample2, degree)
-    return np.mean(K11[:]) + np.mean(K22[:]) - 2 * np.mean(K12[:])
+    K11 = np.mean(poly_kernel(sample1, sample1, degree)[:])
+    K22 = np.mean(poly_kernel(sample2, sample2, degree)[:])
+    K12 = np.mean(poly_kernel(sample1, sample2, degree)[:])
+    return K11 + K22 - 2 * K12
