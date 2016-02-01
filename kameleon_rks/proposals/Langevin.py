@@ -107,18 +107,12 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
         
         assert surrogate.supports_weights()
         assert surrogate.supports_update_fit()
-        
     
-    def set_batch(self, Z, log_weights=None):
-        AdaptiveLangevin.set_batch(self, Z, log_weights)
-        
-        if log_weights is None:
-            weights = np.ones(len(Z))
-        else:
-            weights = np.exp(log_weights)
+    def set_batch(self, Z):
+        AdaptiveLangevin.set_batch(self, Z)
         
         logger.debug("Fitting surrogate gradient model to %d data." % len(Z))
-        self.surrogate.fit(Z, weights)
+        self.surrogate.fit(Z)
     
 class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     """
