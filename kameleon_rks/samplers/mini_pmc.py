@@ -4,18 +4,30 @@ import time
 
 from kameleon_rks.samplers.tools import system_res
 from kameleon_rks.tools.log import Log
+from scipy.misc import logsumexp
 import numpy as np
 
 
 logger = Log.get_logger()
 
-def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None):
-    D = len(start)
+def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None, weighted_update=True, rao_blackwell_generation=True):
+    assert(len(start.shape) <= 2)
+
+    
     
     assert(num_iter % pop_size == 0)
     
     # following not implemented yet
     assert(recompute_log_pdf == False)
+    
+    if len(start.shape) == 2:
+        prev = start
+        prev_logp = np.array([None] * start.shape[0])
+        D = start.shape[1]
+    else:
+        prev = np.array([start] * pop_size)
+        prev_logp = np.array([None] * pop_size)
+        D = len(start)
     
     # PMC results
     proposals = np.zeros((num_iter // pop_size, pop_size, D)) + np.nan
@@ -29,11 +41,14 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
     # timings for output and time limit
     times = np.zeros(num_iter)
     
+
+    
     logger.info("Starting PMC using %s in D=%d dimensions" % \
                 (transition_kernel.get_name(), D,))
     it = 0
     
     for stage in range(num_iter // pop_size):
+        #print('stage', stage)
         start_it = stage * pop_size
         # stop sampling if time budget exceeded
         if time_budget is not None and not np.isnan(times[start_it]):
@@ -41,16 +56,14 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
                 logger.info("Time limit of %ds exceeded. Stopping MCMC at iteration %d." % (time_budget, it))
                 break
             # print  progress
-        if stage > 1:
-            log_str = "PMC iteration %d/%d, current log_pdf: %.6f" % (it + 1, num_iter,
-                                                                       np.nan if log_pdf[it - 1] is None else log_pdf[it - 1])
-            logger.debug(log_str)
-        if stage == 0:
-            prev = np.array([start] * pop_size)
-            prev_logp = np.array([None] * pop_size)
+#        if stage > 1:
+#            log_str = "PMC iteration %d/%d, current log_pdf: %.6f" % (it + 1, num_iter,
+#                                                                       np.nan if log_pdf[it - 1] is None else log_pdf[it - 1])
+#            logger.debug(log_str)               
 
         range_it = range(start_it, start_it + pop_size)
         for it in range_it:
+#            print(it)
             prop_idx = it - start_it
             times[it] = time.time()            
             # marginal sampler: make transition kernel re-compute log_pdf of current state
@@ -59,7 +72,14 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             
             # generate proposal and acceptance probability
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
-            logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
+        if rao_blackwell_generation:
+#            print('rb')
+            try:
+                all_prop_logpdfs = np.array([transition_kernel.proposal_log_pdf(prev[it - start_it], proposals[stage, :]) for it in range_it])
+                prop_prob_logpdf[stage, :] = logsumexp(all_prop_logpdfs, 0)
+            except:
+                assert()
+        logweights[stage, :] = prop_target_logpdf[stage, :] - prop_prob_logpdf[stage, :]
 
 
         res_idx = system_res(range(pop_size), logweights[stage, :],)
@@ -73,7 +93,11 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
         
         # update transition kernel, might do nothing
         transition_kernel.next_iteration()
-        transition_kernel.update( proposals[stage, :], pop_size, logweights[stage, :])
+        if weighted_update:
+            transition_kernel.update(proposals[stage, :], pop_size, logweights[stage, :]) 
+        else:
+            transition_kernel.update(samples[:range_it[-1]+1], pop_size)
+        
         
     # recall it might be less than last iterations due to time budget
     return samples[:it], log_pdf[:it], times[:it]

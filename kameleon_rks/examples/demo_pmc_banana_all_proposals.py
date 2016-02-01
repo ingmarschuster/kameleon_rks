@@ -145,4 +145,3 @@ if __name__ == '__main__':
         plt.suptitle("%s" % \
                      (sampler.__class__.__name__,))
     plt.show()
-
