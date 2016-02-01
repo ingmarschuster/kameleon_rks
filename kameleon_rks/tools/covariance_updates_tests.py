@@ -1,8 +1,7 @@
 from numpy.testing.utils import assert_allclose
 
 from kameleon_rks.tools.covariance_updates import update_mean_lmbda, \
-    weights_to_lmbdas, log_weights_to_lmbdas, update_mean_cov_L_lmbda, \
-    cholupdate_diag
+    weights_to_lmbdas, log_weights_to_lmbdas, update_mean_cov_L_lmbda
 import numpy as np
 
 

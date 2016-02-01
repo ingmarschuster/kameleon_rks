@@ -49,5 +49,5 @@ def log_weights_to_lmbdas(log_sum_old_weights, log_new_weights):
         log_sum_old_weights = logsumexp([log_sum_old_weights, log_new_weight])
         log_lmbda = log_new_weight - log_sum_old_weights
         lmbdas[i] = np.exp(log_lmbda)
-    
+        
     return lmbdas
