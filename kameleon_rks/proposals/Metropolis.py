@@ -20,23 +20,23 @@ class StaticMetropolis(ProposalBase):
         
         self.L_C = np.linalg.cholesky(np.eye(D))
     
+    def proposal_log_pdf(self, current, proposals):
+        log_pdfs = np.zeros(len(proposals))
+        for i, proposal in enumerate(proposals):
+            log_pdfs[i] = log_gaussian_pdf(proposal, mu=current,
+                                           Sigma=self.L_C, is_cholesky=True,
+                                           cov_scaling=self.step_size)
+        
+        return log_pdfs
+    
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
-        try:
-            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
-                                                  Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
-        except Exception as e:
-            logger.error("Could not compute backward probability.")
-            logger.error("current: %s" % str(current))
-            logger.error("proposal: %s" % str(proposal))
-            logger.error("L_C: %s" % str(self.L_C))
-            logger.error("mu: %s" % str(self.mu))
-            
-            raise e
+        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
+                                              Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
 
         proposal_log_pdf = self.target_log_pdf(proposal)
         
@@ -65,30 +65,6 @@ class AdaptiveMetropolis(StaticMetropolis):
         self.L_C = np.eye(D) * np.sqrt(gamma2)
         self.log_sum_weights = None
     
-    def proposal(self, current, current_log_pdf, **kwargs):
-        # mixture proposal with isotropic random walk
-        if np.random.rand() < self.gamma2:
-            use_adaptive_proposal = False
-        else:
-            use_adaptive_proposal = True
-         
-        if use_adaptive_proposal:
-            logger.debug("Proposal with learned covariance")
-            return StaticMetropolis.proposal(self, current, current_log_pdf, **kwargs)
-        else:
-            if current_log_pdf is None:
-                current_log_pdf = self.target_log_pdf(current)
-             
-            logger.debug("Proposal with isotropic covariance")
-            proposal = sample_gaussian(N=1, mu=current, cov_scaling=self.step_size)[0]
-            forw_backw_logprob = log_gaussian_pdf(proposal, mu=current, cov_scaling=self.step_size)
-             
-            proposal_log_pdf = self.target_log_pdf(proposal)
-            results_kwargs = {}
-                 
-            # probability of proposing current when would be sitting at proposal is symmetric
-            return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
-
     def set_batch(self, Z):
         # override streaming solution
         self.mu = np.mean(Z, axis=0)
