@@ -118,7 +118,8 @@ if __name__ == '__main__':
     
     rng_state = np.random.get_state()
     np.random.seed(0)
-    benchmark_sample = sample_banana(1000, D, bananicity, V)
+    num_benchmark_samples = 1000
+    benchmark_sample = sample_banana(num_benchmark_samples, D, bananicity, V)
     np.random.set_state(rng_state)
     
     for _ in range(num_repetitions):
@@ -155,6 +156,7 @@ if __name__ == '__main__':
                               D=D,
                               bananicity=bananicity,
                               V=V,
+                              num_benchmark_samples=num_benchmark_samples,
                               population_size=population_size,
                               num_iter_per_particle=num_iter_per_particle,
                               
