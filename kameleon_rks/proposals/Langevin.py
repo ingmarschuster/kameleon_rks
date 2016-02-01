@@ -16,7 +16,7 @@ class StaticLangevin(StaticMetropolis):
         
         # members hidden from constructor
         self.manual_gradient_step_size = None
-        self.do_preconditioning = True
+        self.do_preconditioning = False
         
         self.forward_drift_norms = []
     

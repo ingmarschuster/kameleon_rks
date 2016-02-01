@@ -54,10 +54,6 @@ if __name__ == "__main__":
         step_size = 1.
         instance = AdaptiveLangevin(D, target_log_pdf, grad, step_size)
         
-        # make sure that the gradient is downscaled by average variance
-        # to avoid preconditioning making the drift diverge
-        instance.manual_gradient_step_size = 1./np.mean(true_var)
-        
         return instance
     
     def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
@@ -90,10 +86,6 @@ if __name__ == "__main__":
             
         instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         
-        # make sure that the gradient is downscaled by average variance
-        # to avoid preconditioning making the drift diverge
-        instance.manual_gradient_step_size = 1./np.mean(true_var)
-        
         return instance
     
     def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
@@ -106,10 +98,6 @@ if __name__ == "__main__":
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
 
-        # make sure that the gradient is downscaled by average variance
-        # to avoid preconditioning making the drift diverge
-        instance.manual_gradient_step_size = 1./np.mean(true_var)
-        
         return instance
     
 if __name__ == '__main__':
