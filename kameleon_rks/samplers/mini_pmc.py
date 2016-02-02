@@ -47,8 +47,17 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
                 (transition_kernel.get_name(), D, pop_size, num_iter/pop_size))
     it = 0
     
+    time_last_printed = time.time()
+    
     for stage in range(num_iter // pop_size):
-        #print('stage', stage)
+        log_str = "PMC stage %d/%d" % (stage, num_iter // pop_size)
+        current_time = time.time()
+        if current_time > time_last_printed + 5:
+            logger.info(log_str)
+            time_last_printed = current_time
+        else:
+            logger.debug(log_str)
+        
         start_it = stage * pop_size
         # stop sampling if time budget exceeded
         if time_budget is not None and not np.isnan(times[start_it]):
