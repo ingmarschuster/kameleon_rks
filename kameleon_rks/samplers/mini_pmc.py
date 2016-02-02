@@ -74,7 +74,6 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             proposals[stage, prop_idx], prop_target_logpdf[stage, prop_idx], current_log_pdf, prop_prob_logpdf[stage, prop_idx], backw_logpdf, current_kwargs = transition_kernel.proposal(prev[prop_idx], prev_logp[prop_idx], **{})
             logweights[stage, prop_idx] = prop_target_logpdf[stage, prop_idx] - prop_prob_logpdf[stage, prop_idx]
         if rao_blackwell_generation:
-            print('rb')
             try:
                 all_prop_logpdfs = np.array([transition_kernel.proposal_log_pdf(prev[it - start_it], proposals[stage, :]) for it in range_it])
                 prop_prob_logpdf[stage, :] = logsumexp(all_prop_logpdfs, 0)
