@@ -18,10 +18,8 @@ sampler_names = [
                  'OracleKernelAdaptiveLangevin'
                  ]
 fields = [
-        'mmd',
             'rmse_mean',
-#           'rmse_var',
-        'ess',
+            'rmse_cov',
           ]
 
 sampler_plot_names = {
@@ -43,11 +41,9 @@ field_plot_names = {
                     'mmd': 'MMD to benchmark sample',
                     'rmse_mean': 'RMSE mean',
                     'rmse_var': 'RMSE variance',
-                    'ess': 'ESS per population sample',
                     }
 
 y_scales = {
-#             'mmd': 'log'
             }
 
 
@@ -58,7 +54,7 @@ conditions = kwargs_gen(
                           D=2,
                           bananicity=0.1,
                           V=100,
-                          num_iter_per_particle=100,
+                          num_iter_per_particle=500,
                         )
 
 # x-axis of plot
