@@ -108,10 +108,12 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
     
     def __init__(self, D, target_log_pdf, gamma2, proposal_mu, proposal_L_C):
         AdaptiveMetropolis.__init__(self, D, target_log_pdf, 1., gamma2)
-        self.logweights = []
         self.proposal_mu = proposal_mu
         self.proposal_L_C = proposal_L_C
     
+        # store all log_weights of all proposals
+        self.log_weights = []
+
     def proposal_log_pdf(self, current, proposals):
         log_probs = log_gaussian_pdf_multiple(proposals, mu=self.proposal_mu,
                                              Sigma=self.proposal_L_C, is_cholesky=True,
@@ -133,13 +135,13 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
         
         results_kwargs = {}
         
-        self.logweights.append(proposal_log_pdf-forw_backw_log_prob)
+        self.log_weights.append(proposal_log_pdf - forw_backw_log_prob)
         
         # probability of proposing current when would be sitting at proposal is symmetric
         return proposal, proposal_log_pdf, current_log_pdf, forw_backw_log_prob, backw_backw_log_prob, results_kwargs
     
     def get_current_ess(self):
-        return kameleon_rks.samplers.tools.compute_ess(self.logweights, normalize=True)
+        return kameleon_rks.samplers.tools.compute_ess(self.log_weights, normalize=True)
 
     def update(self, Z, num_new, log_weights):
         AdaptiveMetropolis.update(self, Z, num_new, log_weights)
