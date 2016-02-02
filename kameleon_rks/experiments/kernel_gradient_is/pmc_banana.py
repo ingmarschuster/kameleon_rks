@@ -173,7 +173,7 @@ if __name__ == '__main__':
                                 
                               mmd=mmd,
                               rmse_mean=rmse_mean,
-                              rmse_var=rmse_cov,
+                              rmse_cov=rmse_cov,
                               time_taken=time_taken,
                               )
         
