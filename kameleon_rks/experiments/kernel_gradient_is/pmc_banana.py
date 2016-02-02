@@ -7,7 +7,6 @@ result_fname = os.path.join(os.path.expanduser('~'), "kameleon_rks_results", "ke
 
 if __name__ == "__main__":
     
-    from scipy.misc.common import logsumexp
     import time
     
     from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
@@ -21,8 +20,7 @@ if __name__ == "__main__":
     from kameleon_rks.proposals.Langevin import OracleKernelAdaptiveLangevin, \
                                     KernelAdaptiveLangevin
     from kameleon_rks.samplers.mini_pmc import mini_pmc
-    from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample, \
-        min_ess
+    from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample
     from kameleon_rks.tools.log import Log
     from kernel_exp_family.estimators.finite.gaussian import KernelExpFiniteGaussian
     from kernel_exp_family.estimators.parameter_search_bo import BayesOptSearch
@@ -123,7 +121,6 @@ if __name__ == '__main__':
     true_var[1] = 20
     true_cov = np.diag(true_var)
     
-
     num_iter_per_particle = 200
     population_sizes = [5, 10, 25, 50, 100]
     
@@ -157,7 +154,6 @@ if __name__ == '__main__':
                 start_time = time.time()
                 samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
                 time_taken = time.time() - start_time
-                
 
                 mmd = mmd_to_benchmark_sample(samples, benchmark_sample, degree=3)
                 rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
@@ -179,7 +175,7 @@ if __name__ == '__main__':
                               time_taken=time_taken,
                               )
         
-                if True:
+                if False:
                     import matplotlib.pyplot as plt
                     visualize_scatter(samples)
                     plt.title("%s" % sampler.get_name())
