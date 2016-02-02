@@ -125,7 +125,7 @@ if __name__ == '__main__':
     
 
     num_iter_per_particle = 200
-    population_sizes = [5, 10, 25, 50, 100, 200]
+    population_sizes = [5, 10, 25, 50, 100]
     
     num_repetitions = 30
     
