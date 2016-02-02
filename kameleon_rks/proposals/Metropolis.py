@@ -92,8 +92,7 @@ class AdaptiveMetropolis(StaticMetropolis):
         self.mu, self.L_C = update_mean_cov_L_lmbda(Z[-num_new:], self.mu, self.L_C, lmbdas)
         
         # update weights
-        stacked = np.hstack((self.log_sum_weights, log_weights[-num_new:]))
-        self.log_sum_weights = logsumexp(stacked)
+        self.log_sum_weights = logsumexp(list(log_weights[-num_new:]) + self.log_sum_weights)
 
 
 class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
