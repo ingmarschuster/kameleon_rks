@@ -1,6 +1,6 @@
 from kameleon_rks.densities.banana import sample_banana, log_banana_pdf
 from kameleon_rks.densities.gaussian import mvnorm
-from kameleon_rks.examples.plotting import visualize_scatter
+from kameleon_rks.examples.plotting import visualize_scatter_2d
 from kameleon_rks.proposals.Kameleon import gamma_median_heuristic, \
     OracleKameleon, Kameleon
 from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin, \
@@ -161,7 +161,7 @@ if __name__ == '__main__':
                                                                                       target_log_pdf,
                                                                                       sampler)
                     
-        visualize_scatter(samples, step_sizes, acceptance_rates)
+        visualize_scatter_2d(samples, step_sizes, acceptance_rates)
         plt.suptitle("%s" % (sampler.__class__.__name__))
     plt.show()
 
