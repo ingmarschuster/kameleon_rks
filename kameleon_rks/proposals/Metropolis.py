@@ -7,6 +7,7 @@ from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
     update_mean_cov_L_lmbda
 from kameleon_rks.tools.log import Log
 import numpy as np
+import kameleon_rks.samplers.tools
 
 
 logger = Log.get_logger()
@@ -107,7 +108,7 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
     
     def __init__(self, D, target_log_pdf, gamma2, proposal_mu, proposal_L_C):
         AdaptiveMetropolis.__init__(self, D, target_log_pdf, 1., gamma2)
-    
+        self.logweights = []
         self.proposal_mu = proposal_mu
         self.proposal_L_C = proposal_L_C
     
@@ -126,13 +127,19 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
         
         forw_backw_log_prob = self.proposal_log_pdf(None, proposal[np.newaxis, :])[0]
         backw_backw_log_prob = self.proposal_log_pdf(None, current[np.newaxis, :])[0]
+        
 
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
         
+        self.logweights.append(proposal_log_pdf-forw_backw_log_prob)
+        
         # probability of proposing current when would be sitting at proposal is symmetric
         return proposal, proposal_log_pdf, current_log_pdf, forw_backw_log_prob, backw_backw_log_prob, results_kwargs
+    
+    def get_current_ess(self):
+        return kameleon_rks.samplers.tools.compute_ess(self.logweights, normalize=True)
 
     def update(self, Z, num_new, log_weights):
         AdaptiveMetropolis.update(self, Z, num_new, log_weights)
