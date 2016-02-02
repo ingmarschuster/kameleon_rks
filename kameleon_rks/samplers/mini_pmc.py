@@ -43,8 +43,8 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
     
 
     
-    logger.info("Starting PMC using %s in D=%d dimensions" % \
-                (transition_kernel.get_name(), D,))
+    logger.info("Starting PMC using %s in D=%d dimensions using %d particles and %d iterations" % \
+                (transition_kernel.get_name(), D, pop_size, num_iter/pop_size))
     it = 0
     
     for stage in range(num_iter // pop_size):
