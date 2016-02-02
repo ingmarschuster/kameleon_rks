@@ -1,6 +1,6 @@
 from scipy.misc.common import logsumexp
 
-from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf, \
+from kameleon_rks.densities.gaussian import sample_gaussian, \
     log_gaussian_pdf_multiple
 from kameleon_rks.proposals.ProposalBase import ProposalBase
 from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
@@ -22,10 +22,10 @@ class StaticMetropolis(ProposalBase):
         self.L_C = np.linalg.cholesky(np.eye(D))
     
     def proposal_log_pdf(self, current, proposals):
-        log_pdfs = log_gaussian_pdf_multiple(proposals, mu=current,
+        log_probs = log_gaussian_pdf_multiple(proposals, mu=current,
                                              Sigma=self.L_C, is_cholesky=True,
                                              cov_scaling=self.step_size)
-        return log_pdfs
+        return log_probs
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
@@ -113,10 +113,10 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
         self.proposal_L_C = proposal_L_C
     
     def proposal_log_pdf(self, current, proposals):
-        log_pdfs = log_gaussian_pdf_multiple(proposals, mu=self.proposal_mu,
+        log_probs = log_gaussian_pdf_multiple(proposals, mu=self.proposal_mu,
                                              Sigma=self.proposal_L_C, is_cholesky=True,
                                              cov_scaling=self.step_size)
-        return log_pdfs
+        return log_probs
     
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
