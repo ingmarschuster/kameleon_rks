@@ -33,15 +33,14 @@ class StaticMetropolis(ProposalBase):
         
         proposal = sample_gaussian(N=1, mu=current, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
-        forw_backw_logprob = log_gaussian_pdf(proposal, mu=current,
-                                              Sigma=self.L_C, is_cholesky=True, cov_scaling=self.step_size)
+        forw_backw_log_prob = self.proposal_log_pdf(current, proposal[np.newaxis, :])[0]
 
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
         
         # probability of proposing current when would be sitting at proposal is symmetric
-        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, forw_backw_logprob, results_kwargs
+        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_log_prob, forw_backw_log_prob, results_kwargs
 
 class AdaptiveMetropolis(StaticMetropolis):
     """
@@ -113,24 +112,28 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
         self.proposal_mu = proposal_mu
         self.proposal_L_C = proposal_L_C
     
+    def proposal_log_pdf(self, current, proposals):
+        log_pdfs = log_gaussian_pdf_multiple(proposals, mu=self.proposal_mu,
+                                             Sigma=self.proposal_L_C, is_cholesky=True,
+                                             cov_scaling=self.step_size)
+        return log_pdfs
+    
     def proposal(self, current, current_log_pdf, **kwargs):
         if current_log_pdf is None:
             current_log_pdf = self.target_log_pdf(current)
         
         proposal = sample_gaussian(N=1, mu=self.proposal_mu, Sigma=self.proposal_L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
-        forw_backw_logprob = log_gaussian_pdf(proposal, mu=self.proposal_mu,
-                                              Sigma=self.proposal_L_C, is_cholesky=True,
-                                              cov_scaling=self.step_size)
-        backw_backw_logprob = log_gaussian_pdf(current, mu=np.zeros(self.D),
-                                              Sigma=self.proposal_L_C, is_cholesky=True, cov_scaling=self.step_size)
+        
+        forw_backw_log_prob = self.proposal_log_pdf(None, proposal[np.newaxis, :])[0]
+        backw_backw_log_prob = self.proposal_log_pdf(None, current[np.newaxis, :])[0]
 
         proposal_log_pdf = self.target_log_pdf(proposal)
         
         results_kwargs = {}
         
         # probability of proposing current when would be sitting at proposal is symmetric
-        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_logprob, backw_backw_logprob, results_kwargs
+        return proposal, proposal_log_pdf, current_log_pdf, forw_backw_log_prob, backw_backw_log_prob, results_kwargs
 
     def update(self, Z, num_new, log_weights):
         AdaptiveMetropolis.update(self, Z, num_new, log_weights)
