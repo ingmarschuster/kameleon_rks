@@ -22,6 +22,7 @@ sampler_names = [
 fields = [
             'rmse_mean',
             'rmse_cov',
+            'mmd',
           ]
 
 sampler_plot_names = {
