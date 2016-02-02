@@ -67,7 +67,7 @@ class AdaptiveMetropolis(StaticMetropolis):
         # override streaming solution
         self.mu = np.mean(Z, axis=0)
         cov = np.cov(Z.T)
-        self.L_C = np.linalg.cholesky(cov + np.eye(self.gamma2))
+        self.L_C = np.linalg.cholesky(cov + np.eye(self.D) * self.gamma2)
         self.log_sum_weights = np.log(len(Z))
         
     def update(self, Z, num_new=1, log_weights=None):
