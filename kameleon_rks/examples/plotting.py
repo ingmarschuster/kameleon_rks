@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from kameleon_rks.tools.convergence_stats import autocorr
 
 
@@ -94,6 +95,10 @@ def visualise_trajectory(Qs, acc_probs, log_pdf_q, D, log_pdf=None, Z=None, log_
     plt.xlabel("Leap frog iteration")
     plt.plot(log_pdf_q)
     plt.xlim([0, len(log_pdf_q)])
+
+def visualise_pairwise_marginals(samples):
+    df = pd.DataFrame(samples)
+    pd.scatter_matrix(df, alpha=0.2, figsize=(8, 8), diagonal='kde', grid=True)
 
 def visualize_scatter_2d(samples, step_sizes=None, acceptance_rates=None):
     assert samples.ndim == 2
