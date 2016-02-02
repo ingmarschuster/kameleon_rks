@@ -1,5 +1,5 @@
 from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
-from kameleon_rks.examples.plotting import visualise_trace
+from kameleon_rks.examples.plotting import visualise_trace_2d
 from kameleon_rks.proposals.Kameleon import OracleKameleon, Kameleon, \
     gamma_median_heuristic
 from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin, \
@@ -138,7 +138,7 @@ if __name__ == '__main__':
         
         # run MCMC
         samples, proposals, accepted, acc_prob, log_pdf, times, step_sizes = mini_mcmc(sampler, start, num_iter, D)
-        visualise_trace(samples, log_pdf, accepted, step_sizes)
+        visualise_trace_2d(samples, log_pdf, accepted, step_sizes)
         plt.suptitle("%s, acceptance rate: %.2f" % \
                      (sampler.get_name(), np.mean(accepted)))
         
