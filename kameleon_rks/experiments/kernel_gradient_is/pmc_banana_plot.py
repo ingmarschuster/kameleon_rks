@@ -40,7 +40,7 @@ sampler_colors = {
 field_plot_names = {
                     'mmd': 'MMD to benchmark sample',
                     'rmse_mean': 'RMSE mean',
-                    'rmse_var': 'RMSE variance',
+                    'rmse_cov': 'RMSE covariance',
                     }
 
 y_scales = {
