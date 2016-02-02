@@ -123,9 +123,8 @@ if __name__ == '__main__':
     true_var[1] = 20
     true_cov = np.diag(true_var)
     
-    num_iter_per_particle = 100
-    population_sizes = [5, 10, 20, 50, 100, 200]
-    population_sizes = [100]
+    num_iter_per_particle = 500
+    population_sizes = [5, 10, 20, 50, 100]
     
     num_repetitions = 30
     
@@ -144,14 +143,13 @@ if __name__ == '__main__':
             target_grad = lambda x: log_banana_pdf(x, bananicity, V, compute_grad=True)
 
             samplers = [
-#                             get_StaticMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
-#                             get_StaticLangevin_instance(D, target_log_pdf, target_grad),
-#                             get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-#                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                            get_StaticMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
+                            get_StaticLangevin_instance(D, target_log_pdf, target_grad),
+                            get_AdaptiveLangevin_instance(D, target_log_pdf, target_grad),
+                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
                             get_KernelAdaptiveLangevin_instance(D, target_log_pdf, target_grad),
-                        
                         ]
                 
             for sampler in samplers:
@@ -159,29 +157,27 @@ if __name__ == '__main__':
                 samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
                 time_taken = time.time() - start_time
                 
-#                 mmd = mmd_to_benchmark_sample(samples, benchmark_sample, degree=3)
-                ess = min_ess(samples)
+                mmd = mmd_to_benchmark_sample(samples, benchmark_sample, degree=3)
                 rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
                 rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
                 
-#                 logger.info("Storing results under %s" % result_fname)
-#                 store_results(result_fname,
-#                               sampler_name=sampler.get_name(),
-#                               D=D,
-#                               bananicity=bananicity,
-#                               V=V,
-#                               num_benchmark_samples=num_benchmark_samples,
-#                               population_size=population_size,
-#                               num_iter_per_particle=num_iter_per_particle,
-#                                
-#                               mmd=mmd,
-#                               ess=ess,
-#                               rmse_mean=rmse_mean,
-#                               rmse_var=rmse_cov,
-#                               time_taken=time_taken,
-#                               )
+                logger.info("Storing results under %s" % result_fname)
+                store_results(result_fname,
+                              sampler_name=sampler.get_name(),
+                              D=D,
+                              bananicity=bananicity,
+                              V=V,
+                              num_benchmark_samples=num_benchmark_samples,
+                              population_size=population_size,
+                              num_iter_per_particle=num_iter_per_particle,
+                                
+                              mmd=mmd,
+                              rmse_mean=rmse_mean,
+                              rmse_var=rmse_cov,
+                              time_taken=time_taken,
+                              )
         
-                if True:
+                if False:
                     import matplotlib.pyplot as plt
                     visualize_scatter(samples)
                     plt.title("%s" % sampler.get_name())
