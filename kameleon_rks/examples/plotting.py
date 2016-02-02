@@ -16,7 +16,7 @@ def pdf_grid(Xs, Ys, est):
     
     return D, G
 
-def visualise_fit(est, X, Xs=None, Ys=None):
+def visualise_fit_2d(est, X, Xs=None, Ys=None):
     # visualise found fit
     plt.figure()
     if Xs is None:
@@ -95,7 +95,7 @@ def visualise_trajectory(Qs, acc_probs, log_pdf_q, D, log_pdf=None, Z=None, log_
     plt.plot(log_pdf_q)
     plt.xlim([0, len(log_pdf_q)])
 
-def visualize_scatter(samples, step_sizes=None, acceptance_rates=None):
+def visualize_scatter_2d(samples, step_sizes=None, acceptance_rates=None):
     assert samples.ndim == 2
     
     plt.figure()

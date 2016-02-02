@@ -10,7 +10,7 @@ if __name__ == "__main__":
     import time
     
     from kameleon_rks.densities.banana import log_banana_pdf, sample_banana
-    from kameleon_rks.examples.plotting import visualize_scatter, visualise_fit
+    from kameleon_rks.examples.plotting import visualize_scatter_2d, visualise_fit_2d
     from kameleon_rks.experiments.tools import store_results
     from kameleon_rks.proposals.Kameleon import gamma_median_heuristic
     from kameleon_rks.proposals.Langevin import AdaptiveLangevin
@@ -90,7 +90,7 @@ if __name__ == "__main__":
             import matplotlib.pyplot as plt
             Xs = np.linspace(-30, 30, 50)
             Ys = np.linspace(-20, 40, 50)
-            visualise_fit(surrogate, Z, Xs, Ys)
+            visualise_fit_2d(surrogate, Z, Xs, Ys)
             plt.show()
             
         instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
@@ -177,13 +177,13 @@ if __name__ == '__main__':
         
                 if False:
                     import matplotlib.pyplot as plt
-                    visualize_scatter(samples)
+                    visualize_scatter_2d(samples)
                     plt.title("%s" % sampler.get_name())
                     
                     if isinstance(sampler, OracleKernelAdaptiveLangevin):
                         Xs = np.linspace(-30, 30, 50)
                         Ys = np.linspace(-20, 40, 50)
-                        visualise_fit(sampler.surrogate, samples, Xs, Ys)
+                        visualise_fit_2d(sampler.surrogate, samples, Xs, Ys)
                     
                     if isinstance(sampler, StaticLangevin):
                         plt.figure()

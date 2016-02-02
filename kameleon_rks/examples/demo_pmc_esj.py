@@ -1,5 +1,5 @@
 from kameleon_rks.densities.banana import sample_banana, log_banana_pdf
-from kameleon_rks.examples.plotting import visualize_scatter
+from kameleon_rks.examples.plotting import visualize_scatter_2d
 from kameleon_rks.proposals.Kameleon import gamma_median_heuristic,\
     OracleKameleon, Kameleon
 from kameleon_rks.proposals.Langevin import StaticLangevin, AdaptiveLangevin,\
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, pop_size)
         mom_samp = np.array([(samples**i).mean(0) for i in range(1,4)])
         
-        visualize_scatter(samples)
+        visualize_scatter_2d(samples)
         Log.get_logger().info('===='+str(sampler.step_size)+'====')
         #the following two should be 0 ideally
         Log.get_logger().info(np.mean((esj(samples,pop_size)-1)**2)) 
