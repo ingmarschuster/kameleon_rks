@@ -1,6 +1,6 @@
-from kameleon_rks.densities.gaussian import sample_gaussian, log_gaussian_pdf
-from kameleon_rks.examples.plotting import visualise_fit
-from kameleon_rks.proposals.Metropolis import StaticMetropolis,\
+from kameleon_rks.densities.gaussian import sample_gaussian, \
+    log_gaussian_pdf_multiple
+from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
     AdaptiveMetropolis
 from kameleon_rks.tools.log import Log
 import numpy as np
@@ -20,59 +20,54 @@ class StaticLangevin(StaticMetropolis):
         
         self.forward_drift_norms = []
     
-    def proposal(self, current, current_log_pdf, **kwargs):
-        if current_log_pdf is None:
-            current_log_pdf = self.target_log_pdf(current)
-        
-        # potentially save computation via re-using gradient
-#         if 'previous_backward_grad' in kwargs:
-#             forward_grad = kwargs['previous_backward_grad']
-#         else:
-        forward_grad = self.grad(current)
+    def _compute_drift(self, current):
+        grad = self.grad(current)
         
         gradient_step_size = self.manual_gradient_step_size if self.manual_gradient_step_size is not None else self.step_size
         
         if self.do_preconditioning:
-            forward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(forward_grad))
+            drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(grad))
         else:
-            forward_drift = 0.5 * gradient_step_size * forward_grad
+            drift = 0.5 * gradient_step_size * grad
         
+        return drift
+    
+    def proposal_log_pdf(self, current, proposals, drift=None):
+        if drift is None:
+            drift = self._compute_drift(current)
+        
+        mu = current + drift
+        
+        log_probs = log_gaussian_pdf_multiple(proposals, mu=mu, Sigma=self.L_C,
+                                              is_cholesky=True,
+                                              cov_scaling=self.step_size)
+        
+        return log_probs
+        
+    
+    def proposal(self, current, current_log_pdf, **kwargs):
+        if current_log_pdf is None:
+            current_log_pdf = self.target_log_pdf(current)
+        
+        forward_drift = self._compute_drift(current)
+        forward_mu = current + forward_drift
+
         forward_drift_norm = np.linalg.norm(forward_drift)
         logger.debug("Norm of forward drift: %.3f" % forward_drift_norm)
         self.forward_drift_norms += [forward_drift_norm]
         
-        forward_mu = current + forward_drift
         proposal = sample_gaussian(N=1, mu=forward_mu, Sigma=self.L_C,
                                    is_cholesky=True, cov_scaling=self.step_size)[0]
-        forward_log_prob = log_gaussian_pdf(proposal, forward_mu, self.L_C,
-                                            is_cholesky=True,
-                                            cov_scaling=self.step_size)
+        forward_log_prob = self.proposal_log_pdf(current, proposal[np.newaxis, :],
+                                                 drift=forward_drift)[0]
         
-        backward_grad = self.grad(proposal)
-        
-        if self.do_preconditioning:
-            backward_drift = 0.5 * gradient_step_size * self.L_C.dot(self.L_C.T.dot(backward_grad))
-        else:
-            backward_drift = 0.5 * gradient_step_size * backward_grad
-        
-        backward_mu = proposal + backward_drift
-        try:
-            backward_log_prob = log_gaussian_pdf(proposal, backward_mu, self.L_C,
-                                                is_cholesky=True,
-                                                cov_scaling=self.step_size)
-        except Exception as e:
-            logger.error("Could not compute backward probability.")
-            logger.error("current: %s" % str(current))
-            logger.error("proposal: %s" % str(proposal))
-            logger.error("backward_drift: %s" % str(backward_drift))
-            logger.error("L_C: %s" % str(self.L_C))
-            logger.error("mu: %s" % str(self.mu))
-            
-            raise e
+        backward_drift = self._compute_drift(proposal)
+        backward_log_prob = self.proposal_log_pdf(proposal, current[np.newaxis, :],
+                                         drift=backward_drift)[0]
             
         proposal_log_pdf = self.target_log_pdf(proposal)
         
-        result_kwargs = {'previous_backward_grad': backward_grad}
+        result_kwargs = {}
         
         return proposal, proposal_log_pdf, current_log_pdf, forward_log_prob, backward_log_prob, result_kwargs
 
@@ -129,18 +124,7 @@ class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
         
         if log_weights is None:
             log_weights = np.log(np.ones(len(Z)))
-        
+
         # update surrogate
         logger.debug("Updating surrogate gradient model using %d data." % num_new)
-#         self.surrogate.update_fit(Z[-num_new:], log_weights[-num_new:])
-        self.surrogate.fit(Z[-num_new:], log_weights[-num_new:])
-        
-        
-        if True:
-            # debug code to visualise intermediate fits
-            import matplotlib.pyplot as plt
-            print "sum_weights:", self.surrogate.log_sum_weights
-            Xs = np.linspace(-30, 30, 50)
-            Ys = np.linspace(-20, 40, 50)
-            visualise_fit(self.surrogate, Z, Xs, Ys)
-            plt.show()
+        self.surrogate.update_fit(Z[-num_new:], log_weights[-num_new:])
