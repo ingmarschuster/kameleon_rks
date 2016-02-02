@@ -120,7 +120,7 @@ def visualize_scatter_2d(samples, step_sizes=None, acceptance_rates=None):
         plt.xlabel("Update iteration")
     
 
-def visualise_trace(samples, log_pdf_trajectory, accepted, step_sizes=None, log_pdf_density=None, idx0=0, idx1=1):
+def visualise_trace_2d(samples, log_pdf_trajectory, accepted, step_sizes=None, log_pdf_density=None, idx0=0, idx1=1):
     assert samples.ndim == 2
     
     D = samples.shape[1]
