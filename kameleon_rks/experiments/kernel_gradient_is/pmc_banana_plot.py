@@ -14,8 +14,10 @@ sampler_names = [
                  'StaticMetropolis',
                  'AdaptiveMetropolis',
                  'StaticLangevin',
-                'AdaptiveLangevin',
-                 'OracleKernelAdaptiveLangevin'
+                 'AdaptiveLangevin',
+                 'OracleKernelAdaptiveLangevin',
+                 'KernelAdaptiveLangevin',
+                 
                  ]
 fields = [
             'rmse_mean',
@@ -26,8 +28,10 @@ sampler_plot_names = {
                   'StaticMetropolis': 'SM',
                   'AdaptiveMetropolis': 'AM',
                   'StaticLangevin': 'SGIS',
-                  'AdaptiveLangevin': 'AGIS',
-                  'OracleKernelAdaptiveLangevin': 'OKAGIS',
+                  'AdaptiveLangevin': 'GIS',
+                  'OracleKernelAdaptiveLangevin': 'OKGIS',
+                  'KernelAdaptiveLangevin': 'KGIS',
+                  
                   }
 sampler_colors = {
                   'StaticMetropolis': 'blue',
@@ -35,6 +39,7 @@ sampler_colors = {
                   'StaticLangevin': 'green',
                   'AdaptiveLangevin': 'yellow',
                   'OracleKernelAdaptiveLangevin': 'magenta',
+                  'KernelAdaptiveLangevin': 'black',
                   
                   }
 field_plot_names = {
@@ -54,7 +59,7 @@ conditions = kwargs_gen(
                           D=2,
                           bananicity=0.03,
                           V=100,
-                          num_iter_per_particle=500,
+                          num_iter_per_particle=200,
                         )
 
 # x-axis of plot

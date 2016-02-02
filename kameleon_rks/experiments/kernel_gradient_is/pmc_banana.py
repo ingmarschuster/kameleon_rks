@@ -123,8 +123,8 @@ if __name__ == '__main__':
     true_var[1] = 20
     true_cov = np.diag(true_var)
     
-    num_iter_per_particle = 500
-    population_sizes = [5, 10, 20, 50, 100]
+    num_iter_per_particle = 200
+    population_sizes = [5, 10, 25, 50, 100, 200]
     
     num_repetitions = 30
     
