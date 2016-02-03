@@ -112,7 +112,7 @@ if __name__ == '__main__':
     print "np.linalg.norm(mean): %.3f" % np.linalg.norm(mean)
     print "ESS: %.3f" % sampler.get_current_ess()
         
-    if True:
+    if False:
         import matplotlib.pyplot as plt
         visualise_pairwise_marginals(samples)
         plt.show()
