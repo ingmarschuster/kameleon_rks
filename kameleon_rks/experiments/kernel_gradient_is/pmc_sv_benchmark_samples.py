@@ -68,6 +68,8 @@ if __name__ == '__main__':
 #         # ESS: 1.009
         
         # run 5 (use parameters of run 4, inflate variance by 4 for final check)
+        # previous run increased proposal variance a lot, and only last 2 components had increased variance
+        # pairwise marginal plot however did not reveal multiple modes, so I assume there are not more modes
         proposal_mu = np.array([ 0.19404095, -0.14017837,  0.35465807, -0.22049461, -4.53669311])
         proposal_var = np.array([ 0.0898059 ,  0.07987   ,  0.60627872,  2.79810551,  4.48372874])
         proposal_L_C = np.diag(np.sqrt(proposal_var))
