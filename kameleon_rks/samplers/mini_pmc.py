@@ -10,7 +10,7 @@ import numpy as np
 
 logger = Log.get_logger()
 
-def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None, weighted_update=True, rao_blackwell_generation=True, resample_at_end = False):
+def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=False, time_budget=None, weighted_update=True, rao_blackwell_generation=True, resample_at_end=False):
     assert(len(start.shape) <= 2)
 
     
@@ -44,13 +44,13 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
 
     
     logger.info("Starting PMC using %s in D=%d dimensions using %d particles and %d iterations" % \
-                (transition_kernel.get_name(), D, pop_size, num_iter/pop_size))
+                (transition_kernel.get_name(), D, pop_size, num_iter / pop_size))
     it = 0
     
     time_last_printed = time.time()
     
     for stage in range(num_iter // pop_size):
-        log_str = "PMC stage %d/%d" % (stage, num_iter // pop_size)
+        log_str = "PMC stage %d/%d" % (stage + 1, num_iter // pop_size)
         current_time = time.time()
         if current_time > time_last_printed + 5:
             logger.info(log_str)
@@ -89,8 +89,8 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             except:
                 assert()
         else:
-            #print('norb')
-            #assert()
+            # print('norb')
+            # assert()
             np.all(logweights[stage, :] == prop_target_logpdf[stage, :] - prop_prob_logpdf[stage, :])
         logweights[stage, :] = prop_target_logpdf[stage, :] - prop_prob_logpdf[stage, :]
 
@@ -107,15 +107,15 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
         # update transition kernel, might do nothing
         transition_kernel.next_iteration()
         if weighted_update:
-            transition_kernel.update(np.vstack(proposals[:stage+1, :]), pop_size, np.hstack(logweights[:stage+1, :])) 
+            transition_kernel.update(np.vstack(proposals[:stage + 1, :]), pop_size, np.hstack(logweights[:stage + 1, :])) 
         else:
-            transition_kernel.update(samples[:range_it[-1]+1], pop_size)
+            transition_kernel.update(samples[:range_it[-1] + 1], pop_size)
     
     if resample_at_end:
-        #FIXME: the last stage might not have drawn the full set of samples
-        all_lweights = np.hstack(logweights[:stage+1, :])
-        res_idx = system_res(range(it+1), all_lweights)
-        (samples, log_pdf) = (np.vstack(proposals[:stage+1, :])[res_idx], all_lweights[res_idx])
+        # FIXME: the last stage might not have drawn the full set of samples
+        all_lweights = np.hstack(logweights[:stage + 1, :])
+        res_idx = system_res(range(it + 1), all_lweights)
+        (samples, log_pdf) = (np.vstack(proposals[:stage + 1, :])[res_idx], all_lweights[res_idx])
         
     # recall it might be less than last iterations due to time budget
     return samples, log_pdf, times[:it]
