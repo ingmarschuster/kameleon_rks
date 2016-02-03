@@ -23,6 +23,8 @@ if __name__ == '__main__':
 #         # run 1
 #         proposal_mu = np.array([-0.17973298, 0.11796741, 0.86733172, 0.52834129, -3.32354247])
 #         proposal_var = np.array([ 0.01932092, 0.02373668, 0.02096583, 0.1566503 , 0.46316933])
+#         proposal_L_C = np.diag(np.sqrt(proposal_var))
+#         proposal_L_C *= 2
 #         # resuts:
 #         # mean: [0.08820961, -0.03436691,  0.7178945,   0.54124475, -3.77499049]
 #         # var: [0.01514925,  0.01407534,  0.056966,    0.37502436,  0.5887545]
@@ -30,11 +32,21 @@ if __name__ == '__main__':
 #         # np.linalg.norm(mean): 3.882
 #         # ESS: not printed
 
-        # run 2
-        proposal_mu = np.array([0.08820961, -0.03436691,  0.7178945,   0.54124475, -3.77499049])
-        proposal_var = np.array([0.01514925,  0.01407534,  0.056966,    0.37502436,  0.5887545])
-
-        # larger support for proposal
+#         # run 2
+#         proposal_mu = np.array([ 0.08820961, -0.03436691, 0.7178945, 0.54124475, -3.77499049 ])
+#         proposal_var = np.array([ 0.01514925, 0.01407534, 0.056966, 0.37502436,  0.5887545 ])
+#         proposal_L_C = np.diag(np.sqrt(proposal_var))
+#         proposal_L_C *= 2
+#         # results:
+#         # mean: array([ 0.13025213, -0.07923937, 0.48663143, 0.17922614, -3.6706272 ])
+#         # var: array([ 0.00990741, 0.01101477, 0.1076653 , 0.6019245 , 0.58744003])
+#         # np.mean(var): 0.264
+#         # np.linalg.norm(mean): 3.710
+#         # ESS: 2.702
+        
+        # run 3
+        proposal_mu = np.array([ 0.13025213, -0.07923937, 0.48663143, 0.17922614, -3.6706272 ])
+        proposal_var = np.array([ 0.00990741, 0.01101477, 0.1076653 , 0.6019245 , 0.58744003])
         proposal_L_C = np.diag(np.sqrt(proposal_var))
         proposal_L_C *= 2
         
@@ -69,11 +81,11 @@ if __name__ == '__main__':
     
     mean = np.mean(samples, axis=0)
     var = np.var(samples, axis=0)
-    print "mean:\n", repr(mean)
-    print "var:\n", repr(var)
+    print "mean:", repr(mean)
+    print "var:", repr(var)
     print "np.mean(var): %.3f" % np.mean(var)
     print "np.linalg.norm(mean): %.3f" % np.linalg.norm(mean)
-    print "ESS:", sampler.get_current_ess()
+    print "ESS: %.3f" % sampler.get_current_ess()
         
     if True:
         import matplotlib.pyplot as plt
