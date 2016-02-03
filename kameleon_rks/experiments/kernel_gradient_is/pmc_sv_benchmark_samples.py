@@ -1,7 +1,7 @@
 import os
 from kameleon_rks.experiments.tools import store_samples
 
-result_fname = os.path.join(os.path.expanduser('~'), "kameleon_rks_results", "kernel_gradient_is", os.path.splitext(os.path.basename(__file__))[0] + ".txt")
+result_fname = os.path.splitext(os.path.basename(__file__))[0] + ".txt"
 
 if __name__ == '__main__':
     import time
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 #         # np.linalg.norm(mean): 3.882
 #         # ESS: not printed
 
-#         # run 2 (use parameters of run 1, inflate variance by 2)
+#         # run 2 (use parameters of run 1, inflate variance by 4)
 #         proposal_mu = np.array([ 0.08820961, -0.03436691, 0.7178945, 0.54124475, -3.77499049])
 #         proposal_var = np.array([ 0.01514925, 0.01407534, 0.056966, 0.37502436,  0.5887545])
 #         proposal_L_C = np.diag(np.sqrt(proposal_var))
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 #         # np.linalg.norm(mean): 3.710
 #         # ESS: 2.702
         
-#         # run 3 (use parameters of run 2, inflate variance by 2)
+#         # run 3 (use parameters of run 2, inflate variance by 4)
 #         proposal_mu = np.array([ 0.13025213, -0.07923937, 0.48663143, 0.17922614, -3.6706272])
 #         proposal_var = np.array([ 0.00990741, 0.01101477, 0.1076653 , 0.6019245 , 0.58744003])
 #         proposal_L_C = np.diag(np.sqrt(proposal_var))
@@ -56,11 +56,22 @@ if __name__ == '__main__':
 #         # np.linalg.norm(mean): 3.613
 #         # ESS: 5.031
         
-        # run 4 (use parameters of run 3, inflate variance by 5)
-        proposal_mu = np.array([ 0.14816278, -0.10084356, 0.34308655, -0.19531029, -3.58675556])
-        proposal_var = np.array([ 0.01056904, 0.0128013 , 0.10549478, 0.56121843, 0.50030183])
+#         # run 4 (use parameters of run 3, inflate variance by 25 to scan for other modes)
+#         proposal_mu = np.array([ 0.14816278, -0.10084356, 0.34308655, -0.19531029, -3.58675556])
+#         proposal_var = np.array([ 0.01056904, 0.0128013 , 0.10549478, 0.56121843, 0.50030183])
+#         proposal_L_C = np.diag(np.sqrt(proposal_var))
+#         proposal_L_C *= 5
+#         # mean: array([ 0.19404095, -0.14017837,  0.35465807, -0.22049461, -4.53669311])
+#         # var: array([ 0.0898059 ,  0.07987   ,  0.60627872,  2.79810551,  4.48372874])
+#         # np.mean(var): 1.612
+#         # np.linalg.norm(mean): 4.562
+#         # ESS: 1.009
+        
+        # run 5 (use parameters of run 4, inflate variance by 4 for final check)
+        proposal_mu = np.array([ 0.19404095, -0.14017837,  0.35465807, -0.22049461, -4.53669311])
+        proposal_var = np.array([ 0.0898059 ,  0.07987   ,  0.60627872,  2.79810551,  4.48372874])
         proposal_L_C = np.diag(np.sqrt(proposal_var))
-        proposal_L_C *= 5
+        proposal_L_C *= 2
         
         instance = AdaptiveIndependentMetropolis(D, target_log_pdf, gamma2, proposal_mu, proposal_L_C)
         
