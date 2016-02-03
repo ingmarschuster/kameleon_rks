@@ -65,7 +65,7 @@ if __name__ == "__main__":
         
         return instance
     
-    def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
+    def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf):
         step_size = 1.
         m = 500
         N = 5000
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         
         return instance
     
-    def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, grad):
+    def get_KernelAdaptiveLangevin_instance(D, target_log_pdf):
         step_size = 1.
         m = 500
         

@@ -1,4 +1,4 @@
-from choldate._choldate import cholupdate, choldowndate
+from choldate._choldate import cholupdate
 from scipy.misc.common import logsumexp
 
 import numpy as np
