@@ -146,6 +146,10 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
     def update(self, Z, num_new, log_weights):
         AdaptiveMetropolis.update(self, Z, num_new, log_weights)
         cov = np.dot(self.L_C, self.L_C.T)
+        var = np.diag(cov)
 
         logger.debug("mu: %s" % str(self.mu))
+        logger.debug("var: %s" % str(var))
         logger.debug("cov: %s" % str(cov))
+        logger.debug("norm(mu): %.3f" % np.linalg.norm(self.mu))
+        logger.debug("np.mean(var): %.3f" % np.mean(var))
