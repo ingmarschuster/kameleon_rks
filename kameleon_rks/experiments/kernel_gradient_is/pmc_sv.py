@@ -19,7 +19,6 @@ if __name__ == '__main__':
     from kameleon_rks.proposals.Langevin import OracleKernelAdaptiveLangevin, \
                                     KernelAdaptiveLangevin
     from kameleon_rks.samplers.mini_pmc import mini_pmc
-    from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample
     from kameleon_rks.tools.log import Log
     from kernel_exp_family.estimators.finite.gaussian import KernelExpFiniteGaussian
     from kernel_exp_family.estimators.parameter_search_bo import BayesOptSearch
@@ -87,7 +86,7 @@ if __name__ == '__main__':
         step_size = 1.
         m = 1000
         
-        sigma = np.exp(-1)
+        sigma = np.exp(-0.7)
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
@@ -143,7 +142,6 @@ if __name__ == '__main__':
                     samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
                     time_taken = time.time() - start_time
     
-                    mmd = mmd_to_benchmark_sample(samples, benchmark_samples, degree=3)
                     rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
                     rmse_var = np.mean((true_var - np.var(samples, 0)) ** 2)
                     rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
@@ -155,7 +153,6 @@ if __name__ == '__main__':
                                   population_size=population_size,
                                   num_iter_per_particle=num_iter_per_particle,
                                     
-                                  mmd=mmd,
                                   rmse_mean=rmse_mean,
                                   rmse_var=rmse_var,
                                   rmse_cov=rmse_cov,
