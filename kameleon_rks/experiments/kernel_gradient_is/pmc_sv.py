@@ -32,8 +32,9 @@ if __name__ == '__main__':
         return instance
 
     def get_AdaptiveMetropolis_instance(D, target_log_pdf, step_size):
-        gamma2 = 0.1
+        gamma2 = 1.
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
+        instance.set_batch(benchmark_samples)
         
         return instance
 
@@ -48,7 +49,6 @@ if __name__ == '__main__':
 
     def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, step_size):
         m = 1000
-        Z = benchmark_samples
         
         sigma = 1.3
         lmbda = 1.
@@ -56,9 +56,9 @@ if __name__ == '__main__':
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
 
         logger.info("Fitting kernel exp family in batch mode")
-        surrogate.fit(Z)
-        
         instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
+        instance.set_batch(benchmark_samples)
+        instance.manual_gradient_step_size = 0.5
         
         return instance
     
@@ -109,9 +109,9 @@ if __name__ == '__main__':
                 samplers = [
                                 get_StaticMetropolis_instance(D, target_log_pdf, step_size),
                                 get_AdaptiveMetropolis_instance(D, target_log_pdf, step_size),
-                                get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf, step_size),
+#                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf, step_size),
                                 get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, step_size),
-                                get_KernelAdaptiveLangevin_instance(D, target_log_pdf, step_size),
+#                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, step_size),
                             ]
                     
                 for sampler in samplers:
