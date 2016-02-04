@@ -55,7 +55,6 @@ if __name__ == '__main__':
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
-        logger.info("kernel exp family uses %s" % surrogate.get_parameters())
 
         logger.info("Fitting kernel exp family in batch mode")
         surrogate.fit(Z)
@@ -71,7 +70,6 @@ if __name__ == '__main__':
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
-        logger.info("kernel exp family uses %s" % surrogate.get_parameters())
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
 
@@ -119,6 +117,8 @@ if __name__ == '__main__':
                     
                 for sampler in samplers:
                     try:
+                        logger.info("%s uses %s" % (sampler.get_name(), sampler.get_parameters()))
+                        
                         start = np.array(true_mean)
                         
                         start_time = time.time()
