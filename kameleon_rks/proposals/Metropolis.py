@@ -3,11 +3,11 @@ from scipy.misc.common import logsumexp
 from kameleon_rks.densities.gaussian import sample_gaussian, \
     log_gaussian_pdf_multiple
 from kameleon_rks.proposals.ProposalBase import ProposalBase
+import kameleon_rks.samplers.tools
 from kameleon_rks.tools.covariance_updates import log_weights_to_lmbdas, \
     update_mean_cov_L_lmbda
 from kameleon_rks.tools.log import Log
 import numpy as np
-import kameleon_rks.samplers.tools
 
 
 logger = Log.get_logger()
@@ -52,15 +52,13 @@ class AdaptiveMetropolis(StaticMetropolis):
     def __init__(self, D, target_log_pdf, step_size, gamma2, schedule=None, acc_star=None):
         StaticMetropolis.__init__(self, D, target_log_pdf, step_size, schedule, acc_star)
         
-        assert gamma2 > 0 and gamma2 < 1
-        
         self.gamma2 = gamma2
         
         # assume that we have observed fake samples (makes system well-posed)
         # these have covariance gamma2*I, which is a regulariser
         # the mean and log_sum_weights however, is taken from the first set of samples in update
         self.mu = None
-        self.L_C = np.eye(D) * np.sqrt(gamma2)
+        self.L_C = None
         self.log_sum_weights = None
     
     def set_batch(self, Z):
@@ -73,28 +71,55 @@ class AdaptiveMetropolis(StaticMetropolis):
     def update(self, Z, num_new=1, log_weights=None):
         assert(len(Z) >= num_new)
         
+        # dont do anything if no data observed
+        if num_new == 0:
+            return
+        
         if log_weights is not None:
             assert len(log_weights) == len(Z)
         else:
             log_weights = np.zeros(len(Z))
+
+        Z_new = Z[-num_new:]
+        log_weights_new = log_weights[-num_new:]
         
-        # nothing observed yet, use average of all observed weights so far
+        # first update: use first of X and log_weights, and then discard
         if self.log_sum_weights is None:
-            # this is log mean exp
-            self.log_sum_weights = logsumexp(log_weights) - np.log(len(log_weights))
-        
-        if self.mu is None:
-            self.mu = np.mean(Z, axis=0)
+            # assume have observed fake terms, which is needed for making the system well-posed
+            # the L_C says that the fake terms had covariance self.lmbda, which is a regulariser
+            self.L_C = np.eye(self.D) * np.sqrt(self.gamma2)
+            self.log_sum_weights = log_weights_new[0]
+            self.mu = Z_new[0]
+            
+            Z_new = Z_new[1:]
+            log_weights_new = log_weights_new[1:]
+            num_new -= 1
+            
+        # dont do anything if no data observed
+        if len(Z_new) == 0:
+            return
         
         # generate lmbdas that correspond to weighted averages
-        lmbdas = log_weights_to_lmbdas(self.log_sum_weights, log_weights[-num_new:])
+        lmbdas = log_weights_to_lmbdas(self.log_sum_weights, log_weights_new)
         
         # low-rank update of Cholesky, costs O(d^2) only
-        self.mu, self.L_C = update_mean_cov_L_lmbda(Z[-num_new:], self.mu, self.L_C, lmbdas)
+        old_L_C = np.array(self.L_C, copy=True)
+        self.mu, self.L_C = update_mean_cov_L_lmbda(Z_new, self.mu, self.L_C, lmbdas)
         
-        # update weights
-        self.log_sum_weights = logsumexp(list(log_weights[-num_new:]) + [self.log_sum_weights])
-
+        if np.any(np.isnan(self.L_C)) or np.any(np.isinf(self.L_C)):
+            logger.warning("Numerical error while updating Cholesky factor of C.\n"
+                           "Before update:\n%s\n"
+                           "After update:\n%s\n"
+                           "Updating data:\n%s\n"
+                           "Updating log weights:\n%s\n"
+                           "Updating lmbdas:\n%s\n"
+                           
+                           % (str(old_L_C), str(self.L_C), str(Z_new), str(log_weights_new), str(lmbdas))
+                           )
+            raise RuntimeError("Numerical error while updating Cholesky factor of C.")
+        
+        # update terms and weights
+        self.log_sum_weights = logsumexp(list(log_weights) + [self.log_sum_weights])
 
 class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
     """
