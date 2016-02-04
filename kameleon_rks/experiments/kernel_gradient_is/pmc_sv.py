@@ -50,7 +50,7 @@ if __name__ == '__main__':
         m = 1000
         Z = benchmark_samples
         
-        sigma = 12.
+        sigma = 1.3
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, step_size):
         m = 1000
         
-        sigma = 12.
+        sigma = 1.3
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
