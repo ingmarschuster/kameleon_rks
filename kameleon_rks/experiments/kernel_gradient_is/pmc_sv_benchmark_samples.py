@@ -74,6 +74,11 @@ if __name__ == '__main__':
         proposal_var = np.array([ 0.0898059 ,  0.07987   ,  0.60627872,  2.79810551,  4.48372874])
         proposal_L_C = np.diag(np.sqrt(proposal_var))
         proposal_L_C *= 2
+        # these results were averaged over many repetitions.
+        # mean: array([ 0.18482533, -0.13985885,  0.29183487, -0.52620493, -4.62597391])
+        # var: array([ 0.10732838,  0.10290396,  0.51048946,  2.92114185,  4.70979457])
+        # np.mean(var): 1.670
+        # np.linalg.norm(mean): 4.671
         
         instance = AdaptiveIndependentMetropolis(D, target_log_pdf, gamma2, proposal_mu, proposal_L_C)
         
