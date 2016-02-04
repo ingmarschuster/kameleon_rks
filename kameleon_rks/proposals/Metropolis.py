@@ -103,11 +103,11 @@ class AdaptiveIndependentMetropolis(AdaptiveMetropolis):
     However, stores mean and covariance in the same fashion as AdaptiveMetropolis
     for debugging purposes, and debug outputs them
     
-    Schedule and acc_star are ignored, step size is always 1.
+    Schedule and acc_star are ignored.
     """
     
-    def __init__(self, D, target_log_pdf, gamma2, proposal_mu, proposal_L_C):
-        AdaptiveMetropolis.__init__(self, D, target_log_pdf, 1., gamma2)
+    def __init__(self, D, target_log_pdf, step_size, gamma2, proposal_mu, proposal_L_C):
+        AdaptiveMetropolis.__init__(self, D, target_log_pdf, step_size, gamma2)
         self.proposal_mu = proposal_mu
         self.proposal_L_C = proposal_L_C
     
