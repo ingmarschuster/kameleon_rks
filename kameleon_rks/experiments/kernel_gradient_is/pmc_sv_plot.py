@@ -8,23 +8,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-# plot benchmark samples, make sure its a particular file version
-benchmark_samples_fname = "pmc_sv_benchmark_samples.txt"
-benchmark_samples_sha1 = "d53e505730c41fbe413188530916d9a402e21a87"
-assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
-benchmark_samples = np.loadtxt(benchmark_samples_fname)
-benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=50)]
-visualise_pairwise_marginals(benchmark_samples)
-print("%d benchmark samples" % len(benchmark_samples))
-
-mean = np.mean(benchmark_samples, axis=0)
-var = np.var(benchmark_samples, axis=0)
-print "mean:", repr(mean)
-print "var:", repr(var)
-print "np.mean(var): %.3f" % np.mean(var)
-print "np.linalg.norm(mean): %.3f" % np.linalg.norm(mean)
-plt.show()
-
+if False:
+    # plot benchmark samples, make sure its a particular file version
+    benchmark_samples_fname = "pmc_sv_benchmark_samples.txt"
+    benchmark_samples_sha1 = "d53e505730c41fbe413188530916d9a402e21a87"
+    assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
+    benchmark_samples = np.loadtxt(benchmark_samples_fname)
+    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=50)]
+    
+    
+    mean = np.mean(benchmark_samples, axis=0)
+    var = np.var(benchmark_samples, axis=0)
+    print("%d benchmark samples" % len(benchmark_samples))
+    print "mean:", repr(mean)
+    print "var:", repr(var)
+    print "np.mean(var): %.3f" % np.mean(var)
+    print "np.linalg.norm(mean): %.3f" % np.linalg.norm(mean)
+    
+    visualise_pairwise_marginals(benchmark_samples)
+    plt.show()
 
 # from kameleon_rks.experiments.latex_plot_init import plt
 result_fname_base = os.path.splitext(result_fname)[0]
@@ -32,9 +34,9 @@ result_fname_base = os.path.splitext(result_fname)[0]
 sampler_names = [
                  'StaticMetropolis',
                 'AdaptiveMetropolis',
-                'AdaptiveIndependentMetropolis',
+#                 'AdaptiveIndependentMetropolis',
                 'OracleKernelAdaptiveLangevin',
-                'KernelAdaptiveLangevin',
+#                 'KernelAdaptiveLangevin',
                  
                  ]
 fields = [
@@ -74,7 +76,10 @@ def kwargs_gen(**kwargs):
 
 conditions = kwargs_gen(
                           D=5,
-                          num_iter_per_particle=200,
+                          num_iter_per_particle=100,
+                          step_size=1,
+                          sigma=1.3,
+#                           sigma=12
                         )
 
 # x-axis of plot
@@ -95,7 +100,7 @@ for field in fields:
             assert()
         
         for k, v in conditions.items():
-            mask &= (df[k] == v)
+            mask &= (df[k] == v) | (np.isnan(df[k]))
         current = df.loc[mask]
         
         # only use desired values of x_fields
