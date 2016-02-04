@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from collections import OrderedDict
 
 from kameleon_rks.tools.log import Log
 import numpy as np
@@ -30,6 +31,10 @@ class ProposalBase():
     @abstractmethod
     def get_name(self):
         return self.__class__.__name__
+    
+    @abstractmethod
+    def get_parameters(self):
+        return OrderedDict({'step_size': self.step_size})
     
     def mh(self, backward_log_pdf, forward_log_pdf, backward_log_prob, forward_log_prob):
         log_acc_prob = forward_log_pdf - backward_log_pdf + backward_log_prob - forward_log_prob

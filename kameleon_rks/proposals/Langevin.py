@@ -1,3 +1,5 @@
+from abc import abstractmethod
+
 from kameleon_rks.densities.gaussian import sample_gaussian, \
     log_gaussian_pdf_multiple
 from kameleon_rks.proposals.Metropolis import StaticMetropolis, \
@@ -108,6 +110,13 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
         
         logger.debug("Fitting surrogate gradient model to %d data." % len(Z))
         self.surrogate.fit(Z)
+    
+    @abstractmethod
+    def get_parameters(self):
+        d = AdaptiveLangevin.get_parameters(self)
+        mine = {'lmbda': self.surrogate.lmbda, 'sigma': self.surrogate.sigma}
+        d.update(mine)
+        return d
     
 class KernelAdaptiveLangevin(OracleKernelAdaptiveLangevin):
     """
