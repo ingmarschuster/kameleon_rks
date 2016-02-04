@@ -27,7 +27,6 @@ if __name__ == '__main__':
 
 
     def get_StaticMetropolis_instance(D, target_log_pdf, step_size):
-        step_size = 1.
         instance = StaticMetropolis(D, target_log_pdf, step_size)
         
         return instance
@@ -90,7 +89,7 @@ if __name__ == '__main__':
     true_cov = np.cov(benchmark_samples.T)
     
     num_iter_per_particle = 100
-    population_sizes = [5, 10, 20, 30, 40, 50]
+    population_sizes = [5, 10, 20, 30, 40, 50, 100]
     step_sizes = [0.1, 0.5, 1, 2]
     num_repetitions = 30
     
@@ -103,10 +102,10 @@ if __name__ == '__main__':
         
         target_log_pdf = mdl.get_logpdf_closure()
         
-        for population_size in population_sizes:
-            num_iter = population_size * num_iter_per_particle
-
-            for step_size in step_sizes:
+        for step_size in step_sizes:
+            for population_size in population_sizes:
+                num_iter = population_size * num_iter_per_particle
+    
                 samplers = [
                                 get_StaticMetropolis_instance(D, target_log_pdf, step_size),
                                 get_AdaptiveMetropolis_instance(D, target_log_pdf, step_size),
