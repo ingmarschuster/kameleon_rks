@@ -112,10 +112,12 @@ def mini_pmc(transition_kernel, start, num_iter, pop_size, recompute_log_pdf=Fal
             transition_kernel.update(samples[:range_it[-1] + 1], pop_size)
     
     if resample_at_end:
-        # FIXME: the last stage might not have drawn the full set of samples
-        all_lweights = np.hstack(logweights[:stage + 1, :])
-        res_idx = system_res(range(it + 1), all_lweights)
-        (samples, log_pdf) = (np.vstack(proposals[:stage + 1, :])[res_idx], all_lweights[res_idx])
-        
+        #FIXME: the last stage might not have drawn the full set of samples
+        all_lweights = np.hstack(logweights[:stage+1, :])
+        res_idx = system_res(range(it+1), all_lweights)
+        (samples, log_pdf) = (np.vstack(proposals[:stage+1, :])[res_idx], prop_target_logpdf[res_idx])
+    else:
+        samples, log_pdf = samples[:it], log_pdf[:it]
+
     # recall it might be less than last iterations due to time budget
     return samples, log_pdf, times[:it]
