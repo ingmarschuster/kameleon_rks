@@ -8,14 +8,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-
 # plot benchmark samples, make sure its a particular file version
 benchmark_samples_fname = "pmc_sv_benchmark_samples.txt"
-benchmark_samples_sha1 = "ffa274673a0388c5eccf4210d34c2281ad9e3157"
+benchmark_samples_sha1 = "d53e505730c41fbe413188530916d9a402e21a87"
 assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
 benchmark_samples = np.loadtxt(benchmark_samples_fname)
 benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=50)]
 visualise_pairwise_marginals(benchmark_samples)
+print("%d benchmark samples" % len(benchmark_samples))
 plt.show()
 
 
@@ -25,8 +25,7 @@ result_fname_base = os.path.splitext(result_fname)[0]
 sampler_names = [
                  'StaticMetropolis',
                 'AdaptiveMetropolis',
-                'StaticLangevin',
-                'AdaptiveLangevin',
+                'AdaptiveIndependentMetropolis',
                 'OracleKernelAdaptiveLangevin',
                 'KernelAdaptiveLangevin',
                  
@@ -40,8 +39,7 @@ fields = [
 sampler_plot_names = {
                   'StaticMetropolis': 'SM',
                   'AdaptiveMetropolis': 'AM',
-                  'StaticLangevin': 'SGIS',
-                  'AdaptiveLangevin': 'GIS',
+                  'AdaptiveIndependentMetropolis': 'AIM',
                   'OracleKernelAdaptiveLangevin': 'OKGIS',
                   'KernelAdaptiveLangevin': 'KGIS',
                   
@@ -49,8 +47,7 @@ sampler_plot_names = {
 sampler_colors = {
                   'StaticMetropolis': 'blue',
                   'AdaptiveMetropolis': 'red',
-                  'StaticLangevin': 'green',
-                  'AdaptiveLangevin': 'yellow',
+                  'AdaptiveIndependentMetropolis': 'green',
                   'OracleKernelAdaptiveLangevin': 'magenta',
                   'KernelAdaptiveLangevin': 'black',
                   
