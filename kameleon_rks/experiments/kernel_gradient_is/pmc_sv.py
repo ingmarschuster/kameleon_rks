@@ -89,8 +89,8 @@ if __name__ == '__main__':
     true_cov = np.cov(benchmark_samples.T)
     
     num_iter_per_particle = 100
-    population_sizes = [5, 10, 20, 30, 40, 50, 100]
-    step_sizes = [0.1, 0.5, 1, 2]
+    population_sizes = [50, 20, 30, 10, 40, 5, 100]
+    step_sizes = [1, 2, 0.5, 0.1]
     num_repetitions = 30
     
     for _ in range(num_repetitions):
@@ -116,7 +116,7 @@ if __name__ == '__main__':
                     
                 for sampler in samplers:
                     try:
-                        logger.info("%s uses %s" % (sampler.get_name(), sampler.get_parameters()))
+                        logger.info("%s uses %s" % (sampler.get_name(), dict(sampler.get_parameters())))
                         
                         start = np.array(true_mean)
                         
