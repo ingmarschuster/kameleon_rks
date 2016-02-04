@@ -16,6 +16,13 @@ benchmark_samples = np.loadtxt(benchmark_samples_fname)
 benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=50)]
 visualise_pairwise_marginals(benchmark_samples)
 print("%d benchmark samples" % len(benchmark_samples))
+
+mean = np.mean(benchmark_samples, axis=0)
+var = np.var(benchmark_samples, axis=0)
+print "mean:", repr(mean)
+print "var:", repr(var)
+print "np.mean(var): %.3f" % np.mean(var)
+print "np.linalg.norm(mean): %.3f" % np.linalg.norm(mean)
 plt.show()
 
 
