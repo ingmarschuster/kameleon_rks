@@ -45,12 +45,12 @@ if __name__ == "__main__":
         return instance
         
     def get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf):
-        gamma2 = 0.1
+        gamma2 = 1.
+        step_size = 1.
         proposal_mu = true_mean
         proposal_L_C = np.linalg.cholesky(true_cov * 2)
         
-        instance = AdaptiveIndependentMetropolis(D, target_log_pdf, gamma2, proposal_mu, proposal_L_C)
-        
+        instance = AdaptiveIndependentMetropolis(D, target_log_pdf, step_size, gamma2, proposal_mu, proposal_L_C)
         return instance
     
     def get_StaticLangevin_instance(D, target_log_pdf, grad):
