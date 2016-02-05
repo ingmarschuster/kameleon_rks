@@ -104,7 +104,7 @@ if __name__ == '__main__':
     num_iter_per_particle = 100
     population_sizes = [5, 10, 20, 30, 40, 50]
     num_repetitions = 30
-    num_initial_oracle = 50
+    num_initial_oracle = 150
     
     for _ in range(num_repetitions):
         mdl = SVoneSP500Model()
