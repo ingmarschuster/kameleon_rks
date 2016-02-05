@@ -92,7 +92,7 @@ if __name__ == '__main__':
     assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
     
     benchmark_samples = np.loadtxt(benchmark_samples_fname)
-    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=200)]
+    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=100)]
     true_mean = np.mean(benchmark_samples, axis=0)
     true_cov = np.cov(benchmark_samples.T)
     
