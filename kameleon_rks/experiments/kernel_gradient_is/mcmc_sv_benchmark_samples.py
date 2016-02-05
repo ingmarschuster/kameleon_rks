@@ -84,6 +84,5 @@ if __name__ == '__main__':
         import matplotlib.pyplot as plt
         visualise_trace_2d(samples, log_pdf, accepted, step_sizes)
         
-        plt.figure()
         visualise_pairwise_marginals(samples)
         plt.show()
