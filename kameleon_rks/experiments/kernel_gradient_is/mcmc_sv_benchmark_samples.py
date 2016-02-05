@@ -52,7 +52,7 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     Log.set_loglevel(20)
     
-    num_iter = 5000
+    num_iter = 10000
     
     mdl = SVoneSP500Model()
     target_log_pdf = mdl.get_logpdf_closure()
