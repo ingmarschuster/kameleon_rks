@@ -80,7 +80,6 @@ if __name__ == '__main__':
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         instance.num_minimum_samples_to_use_drift = 150
-        instance.manual_gradient_step_size = .5
 
         return instance
 
@@ -115,10 +114,10 @@ if __name__ == '__main__':
             num_iter = population_size * num_iter_per_particle
 
             samplers = [
-                            get_StaticMetropolis_instance(D, target_log_pdf),
-                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                             get_StaticMetropolis_instance(D, target_log_pdf),
+#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
 #                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
-                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
+#                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
                         ]
             
