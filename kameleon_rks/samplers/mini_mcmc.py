@@ -41,9 +41,9 @@ def mini_mcmc(transition_kernel, start, num_iter, D, recompute_log_pdf=False, ti
         
         # print chain progress
         if times[it] > last_time_printed + 5:
-            log_str = "MCMC iteration %d/%d, current log_pdf: %.6f, avg acceptance: %.3f" % (it + 1, num_iter,
+            log_str = "MCMC iteration %d/%d, current log_pdf: %.6f, avg acceptance: %.3f, step_size_ %.3f" % (it + 1, num_iter,
                                                                        np.nan if log_pdf[it - 1] is None else log_pdf[it - 1],
-                                                                       avg_accept)
+                                                                       avg_accept, transition_kernel.step_size)
             last_time_printed = times[it]
             logger.info(log_str)
         
