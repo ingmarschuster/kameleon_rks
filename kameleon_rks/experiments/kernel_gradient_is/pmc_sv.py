@@ -117,10 +117,10 @@ if __name__ == '__main__':
             num_iter = population_size * num_iter_per_particle
 
             samplers = [
-#                             get_StaticMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_StaticMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
 #                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
-#                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
+                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
                         ]
             
