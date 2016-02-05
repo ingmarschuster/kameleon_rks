@@ -79,7 +79,9 @@ if __name__ == '__main__':
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
-        instance.num_minimum_samples_to_use_drift = 150
+        
+        # feed a small number of pilot samples into algorithm
+        instance.set_batch(benchmark_samples[:150])
 
         return instance
 
