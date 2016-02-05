@@ -80,6 +80,7 @@ if __name__ == '__main__':
         
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         instance.num_minimum_samples_to_use_drift = 150
+        instance.manual_gradient_step_size = .5
 
         return instance
 
