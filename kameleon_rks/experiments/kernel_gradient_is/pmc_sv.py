@@ -115,10 +115,10 @@ if __name__ == '__main__':
 
             samplers = [
                             get_StaticMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
 #                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
-#                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
+                                get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
                         ]
             
             shuffle(samplers)
@@ -147,6 +147,7 @@ if __name__ == '__main__':
                                   rmse_mean=rmse_mean,
                                   rmse_var=rmse_var,
                                   rmse_cov=rmse_cov,
+                                  rmse_third=rmse_third,
                                   time_taken=time_taken,
                                   
                                   **sampler.get_parameters()
