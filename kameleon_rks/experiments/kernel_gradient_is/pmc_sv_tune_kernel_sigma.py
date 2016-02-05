@@ -23,12 +23,12 @@ def get_benchmark_samples_pmc():
 def get_benchmark_samples_mcmc():
     # load benchmark samples, make sure its a particular file version
     benchmark_samples_fname = "mcmc_sv_benchmark_samples.txt"
-    benchmark_samples_sha1 = "d81369a4f43574e6c62862b35abd648459f12327"
+    benchmark_samples_sha1 = "dd71899bf8ead3972de45543b09af95dc858a208"
     
     assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
     
     benchmark_samples = np.loadtxt(benchmark_samples_fname)
-    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=100)]
+    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=200)]
     return benchmark_samples
 
 if __name__ == "__main__":

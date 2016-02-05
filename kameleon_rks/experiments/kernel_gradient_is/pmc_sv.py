@@ -4,6 +4,7 @@ from random import shuffle
 from kameleon_rks.examples.plotting import visualise_pairwise_marginals
 from kameleon_rks.experiments.tools import assert_file_has_sha1sum
 from kameleon_rks.proposals.Langevin import StaticLangevin
+from kameleon_rks.tools.convergence_stats import mmd_to_benchmark_sample
 
 
 result_fname = os.path.join(os.path.expanduser('~'), "kameleon_rks_results", "kernel_gradient_is", os.path.splitext(os.path.basename(__file__))[0] + ".txt")
@@ -87,15 +88,13 @@ if __name__ == '__main__':
     
     # load benchmark samples, make sure its a particular file version
     benchmark_samples_fname = "mcmc_sv_benchmark_samples.txt"
-    benchmark_samples_sha1 = "d81369a4f43574e6c62862b35abd648459f12327"
+    benchmark_samples_sha1 = "dd71899bf8ead3972de45543b09af95dc858a208"
     assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
     
     benchmark_samples = np.loadtxt(benchmark_samples_fname)
-    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=100)]
+    benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=200)]
     true_mean = np.mean(benchmark_samples, axis=0)
-    true_var = np.var(benchmark_samples, axis=0)
     true_cov = np.cov(benchmark_samples.T)
-    true_third = np.mean(benchmark_samples ** 3, axis=0)
     
     num_iter_per_particle = 100
     population_sizes = [5, 10, 20, 30, 40, 50]
@@ -134,9 +133,8 @@ if __name__ == '__main__':
                     time_taken = time.time() - start_time
     
                     rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
-                    rmse_var = np.mean((true_var - np.var(samples, 0)) ** 2)
                     rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
-                    rmse_third = np.mean((true_third - np.mean(samples ** 3, 0)) ** 2)
+                    mmd = mmd_to_benchmark_sample(samples, benchmark_samples, degree=3)
                     
                     logger.info("Storing results under %s" % result_fname)
                     store_results(result_fname,
@@ -146,9 +144,8 @@ if __name__ == '__main__':
                                   num_iter_per_particle=num_iter_per_particle,
                                     
                                   rmse_mean=rmse_mean,
-                                  rmse_var=rmse_var,
                                   rmse_cov=rmse_cov,
-                                  rmse_third=rmse_third,
+                                  mmd=mmd,
                                   time_taken=time_taken,
                                   
                                   **sampler.get_parameters()
