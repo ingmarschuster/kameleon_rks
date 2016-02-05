@@ -33,9 +33,9 @@ if __name__ == '__main__':
         return instance
     
     def get_StaticMetropolis_instance(D, target_log_pdf):
-        step_size = 0.01
-        acc_star = 0.234
-        schedule = one_over_sqrt_t_schedule
+        step_size = 0.005
+        acc_star = None
+        schedule = None
         instance = StaticMetropolis(D, target_log_pdf, step_size, schedule, acc_star)
         
         # give proposal variance a meaningful shape from previous samples
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 if __name__ == '__main__':
     Log.set_loglevel(20)
     
-    num_iter = 10000
+    num_iter = 20000
     
     mdl = SVoneSP500Model()
     target_log_pdf = mdl.get_logpdf_closure()
