@@ -37,7 +37,7 @@ if __name__ == '__main__':
         return instance
 
     def get_AdaptiveMetropolis_instance(D, target_log_pdf):
-        gamma2 = 1.
+        gamma2 = 0.1
         step_size = 0.002
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
         
