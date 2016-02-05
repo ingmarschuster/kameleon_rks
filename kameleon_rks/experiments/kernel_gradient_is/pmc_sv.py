@@ -148,7 +148,7 @@ if __name__ == '__main__':
                                   D=D,
                                   population_size=population_size,
                                   num_iter_per_particle=num_iter_per_particle,
-                                  num_initial_oracle,
+                                  num_initial_oracle=num_initial_oracle,
                                     
                                   rmse_mean=rmse_mean,
                                   rmse_cov=rmse_cov,
