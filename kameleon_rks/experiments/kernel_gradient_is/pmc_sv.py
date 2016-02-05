@@ -1,4 +1,5 @@
 import os
+from random import shuffle
 
 from kameleon_rks.examples.plotting import visualise_pairwise_marginals
 from kameleon_rks.experiments.tools import assert_file_has_sha1sum
@@ -26,19 +27,24 @@ if __name__ == '__main__':
     logger = Log.get_logger()
 
 
-    def get_StaticMetropolis_instance(D, target_log_pdf, step_size):
+    def get_StaticMetropolis_instance(D, target_log_pdf):
+        step_size = 0.002
         instance = StaticMetropolis(D, target_log_pdf, step_size)
         
-        return instance
-
-    def get_AdaptiveMetropolis_instance(D, target_log_pdf, step_size):
-        gamma2 = 1.
-        instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
-        instance.set_batch(benchmark_samples)
+        # oracle scaling
+        instance.L_C = np.linalg.cholesky(true_cov)
         
         return instance
 
-    def get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf, step_size):
+    def get_AdaptiveMetropolis_instance(D, target_log_pdf):
+        gamma2 = 1.
+        step_size = 0.002
+        instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
+        
+        return instance
+
+    def get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf):
+        step_size = 1.
         gamma2 = 0.1
         proposal_mu = true_mean
         proposal_L_C = np.linalg.cholesky(true_cov * 2)
@@ -47,10 +53,11 @@ if __name__ == '__main__':
         
         return instance
 
-    def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, step_size):
+    def get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf):
+        step_size = 0.002
         m = 1000
         
-        sigma = 1.3
+        sigma = 0.7
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
@@ -58,14 +65,14 @@ if __name__ == '__main__':
         logger.info("Fitting kernel exp family in batch mode")
         instance = OracleKernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         instance.set_batch(benchmark_samples)
-        instance.manual_gradient_step_size = 0.5
         
         return instance
     
-    def get_KernelAdaptiveLangevin_instance(D, target_log_pdf, step_size):
+    def get_KernelAdaptiveLangevin_instance(D, target_log_pdf):
+        step_size = 0.002
         m = 1000
         
-        sigma = 1.3
+        sigma = 0.7
         lmbda = 1.
         
         surrogate = KernelExpFiniteGaussian(sigma=sigma, lmbda=lmbda, m=m, D=D)
@@ -78,8 +85,8 @@ if __name__ == '__main__':
     Log.set_loglevel(20)
     
     # load benchmark samples, make sure its a particular file version
-    benchmark_samples_fname = "pmc_sv_benchmark_samples.txt"
-    benchmark_samples_sha1 = "d53e505730c41fbe413188530916d9a402e21a87"
+    benchmark_samples_fname = "mcmc_sv_benchmark_samples.txt"
+    benchmark_samples_sha1 = "d81369a4f43574e6c62862b35abd648459f12327"
     assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
     
     benchmark_samples = np.loadtxt(benchmark_samples_fname)
@@ -87,10 +94,10 @@ if __name__ == '__main__':
     true_mean = np.mean(benchmark_samples, axis=0)
     true_var = np.var(benchmark_samples, axis=0)
     true_cov = np.cov(benchmark_samples.T)
+    true_third = np.mean(benchmark_samples ** 3, axis=0)
     
     num_iter_per_particle = 100
-    population_sizes = [50, 20, 30, 10, 40, 5, 100]
-    step_sizes = [1, 2, 0.5, 0.1]
+    population_sizes = [5, 10, 20, 30, 40, 50]
     num_repetitions = 30
     
     for _ in range(num_repetitions):
@@ -102,58 +109,60 @@ if __name__ == '__main__':
         
         target_log_pdf = mdl.get_logpdf_closure()
         
-        for step_size in step_sizes:
-            for population_size in population_sizes:
-                num_iter = population_size * num_iter_per_particle
-    
-                samplers = [
-                                get_StaticMetropolis_instance(D, target_log_pdf, step_size),
-                                get_AdaptiveMetropolis_instance(D, target_log_pdf, step_size),
-#                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf, step_size),
-                                get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf, step_size),
-#                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf, step_size),
-                            ]
+        shuffle(population_sizes)
+        for population_size in population_sizes:
+            num_iter = population_size * num_iter_per_particle
+
+            samplers = [
+                            get_StaticMetropolis_instance(D, target_log_pdf),
+#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+#                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
+                            get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
+#                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
+                        ]
+            
+            shuffle(samplers)
+            for sampler in samplers:
+                try:
+                    logger.info("%s uses %s" % (sampler.get_name(), dict(sampler.get_parameters())))
                     
-                for sampler in samplers:
-                    try:
-                        logger.info("%s uses %s" % (sampler.get_name(), dict(sampler.get_parameters())))
+                    start = np.array(true_mean)
+                    
+                    start_time = time.time()
+                    samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
+                    time_taken = time.time() - start_time
+    
+                    rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
+                    rmse_var = np.mean((true_var - np.var(samples, 0)) ** 2)
+                    rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
+                    rmse_third = np.mean((true_third - np.mean(samples ** 3, 0)) ** 2)
+                    
+                    logger.info("Storing results under %s" % result_fname)
+                    store_results(result_fname,
+                                  sampler_name=sampler.get_name(),
+                                  D=D,
+                                  population_size=population_size,
+                                  num_iter_per_particle=num_iter_per_particle,
+                                    
+                                  rmse_mean=rmse_mean,
+                                  rmse_var=rmse_var,
+                                  rmse_cov=rmse_cov,
+                                  time_taken=time_taken,
+                                  
+                                  **sampler.get_parameters()
+                                  )
+            
+                    if False:
+                        import matplotlib.pyplot as plt
+                        visualise_pairwise_marginals(samples)
+                        plt.title("%s" % sampler.get_name())
                         
-                        start = np.array(true_mean)
+                        if isinstance(sampler, StaticLangevin):
+                            plt.figure()
+                            plt.grid(True)
+                            plt.title("Drift norms %s" % sampler.get_name())
+                            plt.hist(sampler.forward_drift_norms)
                         
-                        start_time = time.time()
-                        samples, log_target_densities, times = mini_pmc(sampler, start, num_iter, population_size)
-                        time_taken = time.time() - start_time
-        
-                        rmse_mean = np.mean((true_mean - np.mean(samples, 0)) ** 2)
-                        rmse_var = np.mean((true_var - np.var(samples, 0)) ** 2)
-                        rmse_cov = np.mean((true_cov - np.cov(samples.T)) ** 2)
-                        
-                        logger.info("Storing results under %s" % result_fname)
-                        store_results(result_fname,
-                                      sampler_name=sampler.get_name(),
-                                      D=D,
-                                      population_size=population_size,
-                                      num_iter_per_particle=num_iter_per_particle,
-                                        
-                                      rmse_mean=rmse_mean,
-                                      rmse_var=rmse_var,
-                                      rmse_cov=rmse_cov,
-                                      time_taken=time_taken,
-                                      
-                                      **sampler.get_parameters()
-                                      )
-                
-                        if False:
-                            import matplotlib.pyplot as plt
-                            visualise_pairwise_marginals(samples)
-                            plt.title("%s" % sampler.get_name())
-                            
-                            if isinstance(sampler, StaticLangevin):
-                                plt.figure()
-                                plt.grid(True)
-                                plt.title("Drift norms %s" % sampler.get_name())
-                                plt.hist(sampler.forward_drift_norms)
-                            
-                            plt.show()
-                    except Exception as e:
-                        logger.error("Error happened:\n%s\nContinuing with next sampler" % str(e))
+                        plt.show()
+                except Exception as e:
+                    logger.error("Error happened:\n%s\nContinuing with next sampler" % str(e))
