@@ -42,6 +42,9 @@ if __name__ == '__main__':
         step_size = 0.002
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2)
         
+        # feed a small number of pilot samples into algorithm
+        instance.set_batch(benchmark_samples[:num_initial_oracle])
+        
         return instance
 
     def get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf):
@@ -81,7 +84,7 @@ if __name__ == '__main__':
         instance = KernelAdaptiveLangevin(D, target_log_pdf, surrogate, step_size)
         
         # feed a small number of pilot samples into algorithm
-        instance.set_batch(benchmark_samples[:150])
+        instance.set_batch(benchmark_samples[:num_initial_oracle])
 
         return instance
 
@@ -101,6 +104,7 @@ if __name__ == '__main__':
     num_iter_per_particle = 100
     population_sizes = [5, 10, 20, 30, 40, 50]
     num_repetitions = 30
+    num_initial_oracle = 50
     
     for _ in range(num_repetitions):
         mdl = SVoneSP500Model()
@@ -117,7 +121,7 @@ if __name__ == '__main__':
 
             samplers = [
 #                             get_StaticMetropolis_instance(D, target_log_pdf),
-#                             get_AdaptiveMetropolis_instance(D, target_log_pdf),
+                            get_AdaptiveMetropolis_instance(D, target_log_pdf),
 #                                 get_AdaptiveIndependentMetropolis_instance(D, target_log_pdf),
 #                             get_OracleKernelAdaptiveLangevin_instance(D, target_log_pdf),
                                 get_KernelAdaptiveLangevin_instance(D, target_log_pdf),
@@ -144,6 +148,7 @@ if __name__ == '__main__':
                                   D=D,
                                   population_size=population_size,
                                   num_iter_per_particle=num_iter_per_particle,
+                                  num_initial_oracle,
                                     
                                   rmse_mean=rmse_mean,
                                   rmse_cov=rmse_cov,
