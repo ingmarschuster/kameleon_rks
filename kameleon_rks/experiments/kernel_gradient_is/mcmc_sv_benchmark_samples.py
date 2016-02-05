@@ -1,8 +1,10 @@
 import os
 
 from kameleon_rks.examples.plotting import visualise_trace_2d
-from kameleon_rks.experiments.tools import store_samples
-from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis
+from kameleon_rks.experiments.tools import store_samples,\
+    assert_file_has_sha1sum
+from kameleon_rks.proposals.Metropolis import AdaptiveMetropolis, \
+    StaticMetropolis
 from kameleon_rks.samplers.mini_mcmc import mini_mcmc
 from kameleon_rks.tools.convergence_stats import min_ess
 
@@ -29,6 +31,23 @@ if __name__ == '__main__':
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule, acc_star)
         
         return instance
+    
+    def get_StaticMetropolis_instance(D, target_log_pdf):
+        step_size = 0.01
+        acc_star = 0.234
+        schedule = one_over_sqrt_t_schedule
+        instance = StaticMetropolis(D, target_log_pdf, step_size, schedule, acc_star)
+        
+        # give proposal variance a meaningful shape from previous samples
+        benchmark_samples_fname = "pmc_sv_benchmark_samples.txt"
+        benchmark_samples_sha1 = "d53e505730c41fbe413188530916d9a402e21a87"
+        assert_file_has_sha1sum(benchmark_samples_fname, benchmark_samples_sha1)
+        
+        benchmark_samples = np.loadtxt(benchmark_samples_fname)
+        benchmark_samples = benchmark_samples[np.arange(0, len(benchmark_samples), step=50)]
+        instance.L_C = np.linalg.cholesky(np.cov(benchmark_samples.T))
+        
+        return instance
 
 if __name__ == '__main__':
     Log.set_loglevel(20)
@@ -44,10 +63,10 @@ if __name__ == '__main__':
     D = mdl.dim
     
     # from initial runs
-    initial_mean = np.array([ 0.19404095, -0.14017837,  0.35465807, -0.22049461, -4.53669311])
+    initial_mean = np.array([ 0.19404095, -0.14017837, 0.35465807, -0.22049461, -4.53669311])
     start = initial_mean
 
-    sampler = get_AdaptiveMetropolis_instance(D, target_log_pdf)
+    sampler = get_StaticMetropolis_instance(D, target_log_pdf)
     samples, proposals, accepted, acc_prob, log_pdf, times, step_sizes = mini_mcmc(sampler, start, num_iter, D)
 
     logger.info("Storing results under %s" % result_fname)
