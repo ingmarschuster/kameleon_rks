@@ -25,7 +25,7 @@ if __name__ == '__main__':
     
     def get_AdaptiveMetropolis_instance(D, target_log_pdf):
         gamma2 = 1.
-        step_size = 0.01
+        step_size = 0.002
         acc_star = 0.234
         schedule = one_over_sqrt_t_schedule
         instance = AdaptiveMetropolis(D, target_log_pdf, step_size, gamma2, schedule, acc_star)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
         return instance
     
     def get_StaticMetropolis_instance(D, target_log_pdf):
-        step_size = 0.005
+        step_size = 0.002
         acc_star = None
         schedule = None
         instance = StaticMetropolis(D, target_log_pdf, step_size, schedule, acc_star)
