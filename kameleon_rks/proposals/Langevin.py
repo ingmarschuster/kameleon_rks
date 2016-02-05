@@ -104,12 +104,28 @@ class OracleKernelAdaptiveLangevin(AdaptiveLangevin):
         
         assert surrogate.supports_weights()
         assert surrogate.supports_update_fit()
+        
+        # iteration to use the kernel drift from at least this many points seen
+        # otherwise, it is only estimated
+        self.num_minimum_samples_to_use_drift = 0
     
     def set_batch(self, Z):
         AdaptiveLangevin.set_batch(self, Z)
         
         logger.debug("Fitting surrogate gradient model to %d data." % len(Z))
         self.surrogate.fit(Z)
+    
+    def proposal(self, current, current_log_pdf, **kwargs):
+        if self.surrogate.n >= self.num_minimum_samples_to_use_drift:
+            return AdaptiveLangevin.proposal(self, current, current_log_pdf, **kwargs)
+        else:
+            # random walk until using gradients
+            logger.debug("Waiting to use kernel gradient. Seen %d/%d data." % \
+                         (self.surrogate.n, self.num_minimum_samples_to_use_drift))
+            return AdaptiveMetropolis.proposal(self, current, current_log_pdf, **kwargs)
+        
+        
+        return AdaptiveMetropolis.proposal(self, current, current_log_pdf, **kwargs)
     
     @abstractmethod
     def get_parameters(self):
